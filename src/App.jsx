@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-
+import FormularioComercio from './FormularioComercio'
 function App() {
   const [busqueda, setBusqueda] = useState('')
   const [negocios, setNegocios] = useState([])
@@ -8,7 +8,7 @@ function App() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
-
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
   useEffect(() => {
     cargarNegocios()
   }, [])
@@ -106,9 +106,12 @@ function App() {
             <a href="#" onClick={volverAlInicio} className="hover:text-yellow-400 transition font-medium cursor-pointer">Inicio</a>
             <a href="#categorias" className="hover:text-yellow-400 transition font-medium">Categorías</a>
             <a href="#planes" className="hover:text-yellow-400 transition font-medium">Cómo Funciona</a>
-            <a href="#" className="bg-yellow-500 text-blue-900 px-6 py-2 rounded-lg font-bold hover:bg-yellow-400 transition">
-              Soy Comercio
-            </a>
+            <button 
+  onClick={() => setMostrarFormulario(true)}
+  className="bg-yellow-500 text-blue-900 px-6 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
+>
+  Soy Comercio
+</button>
           </div>
         </div>
       </nav>
@@ -409,8 +412,16 @@ function App() {
               <ul className="space-y-2 text-sm">
                 <li><a href="#" onClick={volverAlInicio} className="hover:text-yellow-400 transition cursor-pointer">Inicio</a></li>
                 <li><a href="#categorias" className="hover:text-yellow-400 transition">Categorías</a></li>
-                <li><a href="#" className="hover:text-yellow-400 transition">Soy Comercio</a></li>
+                <button 
+  onClick={() => setMostrarFormulario(true)}
+  className="bg-yellow-500 text-blue-900 px-6 py-2 rounded-lg font-bold hover:bg-yellow-400 transition"
+>
+  Soy Comercio
+</button>
               </ul>
+              {mostrarFormulario && (
+  <FormularioComercio onClose={() => setMostrarFormulario(false)} />
+)}
             </div>
             
             <div>
