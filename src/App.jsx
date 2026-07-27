@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import FormularioComercio from './FormularioComercio'
+import AdminPanel from './AdminPanel'
 function App() {
   const [busqueda, setBusqueda] = useState('')
   const [negocios, setNegocios] = useState([])
@@ -8,6 +9,7 @@ function App() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+  const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   useEffect(() => {
     cargarNegocios()
@@ -433,11 +435,19 @@ function App() {
             </div>
           </div>
           
-          <div className="border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
-            <p>© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>
-          </div>
+            <div className="border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
+     <p>© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>
+     {/* Enlace secreto al admin */}
+     <button 
+       onClick={() => setMostrarAdmin(true)}
+       className="mt-2 text-gray-600 hover:text-gray-400 text-xs"
+     >
+       Acceso Admin
+     </button>
+   </div>
         </div>
       </footer>
+         {mostrarAdmin && <AdminPanel onClose={() => setMostrarAdmin(false)} />}
     </div>
   )
 }
