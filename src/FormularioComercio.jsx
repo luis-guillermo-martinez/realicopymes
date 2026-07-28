@@ -29,12 +29,12 @@ function FormularioComercio({ onClose }) {
     const chatId = '6436917492'
     
     const mensaje = `
- *NUEVA SOLICITUD DE COMERCIO*
+📋 *NUEVA SOLICITUD DE COMERCIO*
 
 🏪 *Comercio:* ${datos.nombre_comercio}
 👤 *Contacto:* ${datos.nombre_contacto}
 📞 *Teléfono:* ${datos.telefono}
- *Email:* ${datos.email}
+📧 *Email:* ${datos.email}
 📂 *Categoría:* ${datos.categoria}
  *Dirección:* ${datos.direccion || 'No especificada'}
 💼 *Plan:* ${datos.plan_interes}
@@ -69,17 +69,14 @@ function FormularioComercio({ onClose }) {
     setError('')
 
     try {
-      // 1. Guardar en Supabase
       const { error } = await supabase
         .from('solicitudes_comercios')
         .insert([formData])
 
       if (error) throw error
 
-      // 2. Enviar notificación a Telegram
       await enviarTelegram(formData)
 
-      // 3. Mostrar éxito y limpiar
       setExito(true)
       setFormData({
         nombre_comercio: '',
@@ -92,7 +89,6 @@ function FormularioComercio({ onClose }) {
         plan_interes: 'Gratuito'
       })
 
-      // Cerrar automáticamente después de 3 segundos
       setTimeout(() => {
         onClose()
       }, 3000)
@@ -107,16 +103,16 @@ function FormularioComercio({ onClose }) {
 
   if (exito) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
-          <div className="text-green-500 text-6xl mb-4">✓</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">¡Solicitud Enviada!</h2>
-          <p className="text-gray-600 mb-6">
+          <div className="text-oliva text-6xl mb-4">✓</div>
+          <h2 className="text-2xl font-bold text-navy mb-4">¡Solicitud Enviada!</h2>
+          <p className="text-navy/70 mb-6">
             Nos contactaremos con vos en las próximas 48 horas para confirmar tu registro.
           </p>
           <button 
             onClick={onClose}
-            className="bg-blue-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
+            className="bg-navy text-white px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition"
           >
             Cerrar
           </button>
@@ -126,13 +122,13 @@ function FormularioComercio({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl p-8 max-w-2xl w-full my-8 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-crema rounded-xl p-8 max-w-2xl w-full my-8 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-800">Sumá tu Comercio</h2>
+          <h2 className="text-3xl font-bold text-navy">Sumá tu Comercio</h2>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-navy/60 hover:text-navy text-2xl font-bold"
           >
             ✕
           </button>
@@ -141,7 +137,7 @@ function FormularioComercio({ onClose }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Nombre del Comercio *
               </label>
               <input
@@ -150,13 +146,13 @@ function FormularioComercio({ onClose }) {
                 value={formData.nombre_comercio}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
                 placeholder="Ej: Panadería La Espiga"
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Nombre del Contacto *
               </label>
               <input
@@ -165,7 +161,7 @@ function FormularioComercio({ onClose }) {
                 value={formData.nombre_contacto}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
                 placeholder="Tu nombre completo"
               />
             </div>
@@ -173,7 +169,7 @@ function FormularioComercio({ onClose }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Teléfono / WhatsApp *
               </label>
               <input
@@ -182,13 +178,13 @@ function FormularioComercio({ onClose }) {
                 value={formData.telefono}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
                 placeholder="Ej: (02955) 12-3456"
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Email *
               </label>
               <input
@@ -197,7 +193,7 @@ function FormularioComercio({ onClose }) {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
                 placeholder="tu@email.com"
               />
             </div>
@@ -205,7 +201,7 @@ function FormularioComercio({ onClose }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Categoría *
               </label>
               <select
@@ -213,7 +209,7 @@ function FormularioComercio({ onClose }) {
                 value={formData.categoria}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
               >
                 <option value="">Seleccionar...</option>
                 <option value="Gastronomía">Gastronomía</option>
@@ -229,14 +225,14 @@ function FormularioComercio({ onClose }) {
             </div>
 
             <div>
-              <label className="block text-gray-700 font-bold mb-2">
+              <label className="block text-navy font-bold mb-2">
                 Plan de Interés
               </label>
               <select
                 name="plan_interes"
                 value={formData.plan_interes}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
               >
                 <option value="Gratuito">Gratuito</option>
                 <option value="Destacado">Destacado</option>
@@ -246,7 +242,7 @@ function FormularioComercio({ onClose }) {
           </div>
 
           <div>
-            <label className="block text-gray-700 font-bold mb-2">
+            <label className="block text-navy font-bold mb-2">
               Dirección
             </label>
             <input
@@ -254,13 +250,13 @@ function FormularioComercio({ onClose }) {
               name="direccion"
               value={formData.direccion}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
               placeholder="Ej: Av. Libertador 123, Realicó"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 font-bold mb-2">
+            <label className="block text-navy font-bold mb-2">
               Mensaje / Consulta
             </label>
             <textarea
@@ -268,7 +264,7 @@ function FormularioComercio({ onClose }) {
               value={formData.mensaje}
               onChange={handleChange}
               rows="4"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white"
               placeholder="Contanos más sobre tu comercio o hacé tu consulta..."
             />
           </div>
@@ -283,14 +279,14 @@ function FormularioComercio({ onClose }) {
             <button
               type="submit"
               disabled={enviando}
-              className="flex-1 bg-yellow-500 text-blue-900 py-4 rounded-lg font-bold hover:bg-yellow-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-dorado text-navy py-4 rounded-lg font-bold hover:bg-dorado-claro transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {enviando ? 'Enviando...' : 'Enviar Solicitud'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-50 transition"
+              className="px-8 py-4 border-2 border-navy/30 text-navy rounded-lg font-bold hover:bg-navy/10 transition"
             >
               Cancelar
             </button>
