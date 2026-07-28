@@ -12,6 +12,7 @@ function App() {
   const [error, setError] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [mostrarAdmin, setMostrarAdmin] = useState(false)
+  const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
 
   useEffect(() => {
     cargarNegocios()
@@ -94,32 +95,85 @@ function App() {
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
       {/* Barra de Navegación */}
-      {/* Barra de Navegación */}
-<nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
-  <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-    <div className="flex items-center">
-      <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
-        <img 
-          src="/logo.png" 
-          alt="Realicó PyMEs Logo" 
-          className="h-10 md:h-12 w-auto"
-        />
-      </div>
-    </div>
-    
-    <div className="hidden md:flex items-center space-x-8 font-body font-semibold">
-      <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
-      <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
-      <a href="#planes" className="text-navy hover:text-dorado transition">Cómo Funciona</a>
-      <button 
-        onClick={() => setMostrarFormulario(true)}
-        className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition"
-      >
-        Soy Comercio
-      </button>
-    </div>
-  </div>
-</nav>
+      <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex justify-between items-center">
+            {/* Logo */}
+            <div className="flex items-center">
+              <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
+                <img 
+                  src="/logo.png" 
+                  alt="Realicó PyMEs Logo" 
+                  className="h-10 md:h-12 w-auto"
+                />
+              </div>
+            </div>
+            
+            {/* Menú Desktop */}
+            <div className="hidden md:flex items-center space-x-8 font-body font-semibold">
+              <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
+              <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
+              <a href="#planes" className="text-navy hover:text-dorado transition">Cómo Funciona</a>
+              <button 
+                onClick={() => setMostrarFormulario(true)}
+                className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition"
+              >
+                Soy Comercio
+              </button>
+            </div>
+
+            {/* Botón Menú Móvil */}
+            <button 
+              onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)}
+              className="md:hidden text-navy p-2 hover:bg-navy/10 rounded-lg transition"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mostrarMenuMovil ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
+
+          {/* Menú Móvil Desplegable */}
+          {mostrarMenuMovil && (
+            <div className="md:hidden mt-4 pb-4 border-t border-navy/10 pt-4">
+              <div className="flex flex-col space-y-3 font-body font-semibold">
+                <a 
+                  href="#" 
+                  onClick={() => {volverAlInicio(); setMostrarMenuMovil(false)}} 
+                  className="text-navy hover:text-dorado transition py-2"
+                >
+                  Inicio
+                </a>
+                <a 
+                  href="#categorias" 
+                  onClick={() => setMostrarMenuMovil(false)} 
+                  className="text-navy hover:text-dorado transition py-2"
+                >
+                  Categorías
+                </a>
+                <a 
+                  href="#planes" 
+                  onClick={() => setMostrarMenuMovil(false)} 
+                  className="text-navy hover:text-dorado transition py-2"
+                >
+                  Cómo Funciona
+                </a>
+                <button 
+                  onClick={() => {setMostrarFormulario(true); setMostrarMenuMovil(false)}}
+                  className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center"
+                >
+                  Soy Comercio
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </nav>
+
       {/* Sección Principal (Hero) */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
@@ -310,7 +364,7 @@ function App() {
                         <div className="space-y-2 text-sm font-body text-navy/80">
                           {negocio.direccion && <p>📍 {negocio.direccion}</p>}
                           {negocio.telefono && <p>📞 {negocio.telefono}</p>}
-                          {negocio.horario && <p>🕐 {negocio.horario}</p>}
+                          {negocio.horario && <p> {negocio.horario}</p>}
                         </div>
 
                         {negocio.whatsapp && (
