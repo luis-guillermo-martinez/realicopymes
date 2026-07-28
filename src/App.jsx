@@ -94,31 +94,32 @@ function App() {
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
       {/* Barra de Navegación */}
-      <nav className="bg-navy text-white shadow-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div 
-              className="bg-dorado text-navy font-display text-2xl px-4 py-2 rounded cursor-pointer tracking-wide" 
-              onClick={volverAlInicio}
-            >
-              REALICÓ PyMEs
-            </div>
-          </div>
-          
-          <div className="hidden md:flex space-x-8 font-body font-medium">
-            <a href="#" onClick={volverAlInicio} className="hover:text-dorado-claro transition cursor-pointer">Inicio</a>
-            <a href="#categorias" className="hover:text-dorado-claro transition">Categorías</a>
-            <a href="#planes" className="hover:text-dorado-claro transition">Cómo Funciona</a>
-            <button 
-              onClick={() => setMostrarFormulario(true)}
-              className="bg-dorado text-navy px-6 py-2 rounded-lg font-bold hover:bg-dorado-claro transition"
-            >
-              Soy Comercio
-            </button>
-          </div>
-        </div>
-      </nav>
-
+      {/* Barra de Navegación */}
+<nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
+  <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+    <div className="flex items-center">
+      <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
+        <img 
+          src="/logo.png" 
+          alt="Realicó PyMEs Logo" 
+          className="h-10 md:h-12 w-auto"
+        />
+      </div>
+    </div>
+    
+    <div className="hidden md:flex items-center space-x-8 font-body font-semibold">
+      <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
+      <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
+      <a href="#planes" className="text-navy hover:text-dorado transition">Cómo Funciona</a>
+      <button 
+        onClick={() => setMostrarFormulario(true)}
+        className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition"
+      >
+        Soy Comercio
+      </button>
+    </div>
+  </div>
+</nav>
       {/* Sección Principal (Hero) */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
