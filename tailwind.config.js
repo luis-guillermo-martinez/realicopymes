@@ -8,21 +8,26 @@ export default {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#1B2A4B',    // Primario (marca, headers, hero)
-          dark: '#1A1C2E',       // Primario oscuro (bordes, footer)
-          light: '#2A3F6B',      // Versión más clara para hover
+          DEFAULT: '#1B2A4B',
+          dark: '#1A1C2E',
+          light: '#2A3F6B',
         },
         dorado: {
-          DEFAULT: '#C9B24A',    // Secundario/acento (CTAs, destacados)
-          claro: '#E6B661',      // Acento claro (sobre fondos oscuros)
-          oscuro: '#A89430',     // Versión más oscura para hover
+          DEFAULT: '#C9B24A',
+          claro: '#E6B661',
+          oscuro: '#A89430',
         },
-        crema: '#F4F1E6',        // Fondo general
-        papel: '#F1E8C9',        // Fondo oscuro (secciones acentuadas)
+        crema: '#F4F1E6',
+        papel: '#F1E8C9',
         oliva: {
-          DEFAULT: '#4A7C59',    // Texto de apoyo / contrastes / WhatsApp
-          dark: '#3A6247',       // Hover
+          DEFAULT: '#4A7C59',
+          dark: '#3A6247',
         },
+      },
+      fontFamily: {
+        display: ['"Bebas Neue"', 'sans-serif'],
+        body: ['"Barlow"', 'sans-serif'],
+        label: ['"Barlow Semi Condensed"', 'sans-serif'],
       },
     },
   },

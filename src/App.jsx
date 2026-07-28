@@ -92,23 +92,23 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-crema flex flex-col">
+    <div className="min-h-screen bg-crema flex flex-col font-body">
       {/* Barra de Navegación */}
       <nav className="bg-navy text-white shadow-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div 
-              className="bg-dorado text-navy font-bold text-xl px-4 py-2 rounded cursor-pointer" 
+              className="bg-dorado text-navy font-display text-2xl px-4 py-2 rounded cursor-pointer tracking-wide" 
               onClick={volverAlInicio}
             >
               REALICÓ PyMEs
             </div>
           </div>
           
-          <div className="hidden md:flex space-x-8">
-            <a href="#" onClick={volverAlInicio} className="hover:text-dorado-claro transition font-medium cursor-pointer">Inicio</a>
-            <a href="#categorias" className="hover:text-dorado-claro transition font-medium">Categorías</a>
-            <a href="#planes" className="hover:text-dorado-claro transition font-medium">Cómo Funciona</a>
+          <div className="hidden md:flex space-x-8 font-body font-medium">
+            <a href="#" onClick={volverAlInicio} className="hover:text-dorado-claro transition cursor-pointer">Inicio</a>
+            <a href="#categorias" className="hover:text-dorado-claro transition">Categorías</a>
+            <a href="#planes" className="hover:text-dorado-claro transition">Cómo Funciona</a>
             <button 
               onClick={() => setMostrarFormulario(true)}
               className="bg-dorado text-navy px-6 py-2 rounded-lg font-bold hover:bg-dorado-claro transition"
@@ -120,12 +120,12 @@ function App() {
       </nav>
 
       {/* Sección Principal (Hero) */}
-      <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-16">
+      <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">
             El directorio de negocios de Realicó
           </h1>
-          <p className="text-xl mb-8 text-dorado-claro max-w-2xl mx-auto">
+          <p className="font-body text-xl md:text-2xl mb-10 text-dorado-claro max-w-2xl mx-auto font-medium">
             Conectamos a la comunidad con los mejores servicios y profesionales locales de La Pampa.
           </p>
           
@@ -135,20 +135,20 @@ function App() {
               placeholder="¿Qué buscás? Ejemplo: Panadería, Cerrajero, Farmacia..." 
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado"
+              className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
+            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
               Buscar
             </button>
           </div>
         </div>
       </header>
 
-      {/* SECCIÓN 1: TARJETAS DE CATEGORÍAS (Solo en home) */}
+      {/* SECCIÓN 1: TARJETAS DE CATEGORÍAS */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="categorias" className="container mx-auto px-4 py-16">
-          <h2 className="text-3xl font-bold text-navy mb-4 text-center">Explora por Categoría</h2>
-          <p className="text-navy/70 text-center mb-12 max-w-2xl mx-auto">
+          <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
+          <p className="font-body text-navy/70 text-center mb-12 max-w-2xl mx-auto text-lg">
             Encontrá rápidamente los servicios que necesitás en Realicó y la región.
           </p>
           
@@ -159,22 +159,22 @@ function App() {
                 onClick={() => handleCategoriaClick(categoria)}
                 className="bg-white p-8 rounded-lg shadow-md hover:shadow-2xl hover:-translate-y-2 transition duration-300 text-center border-2 border-transparent hover:border-dorado cursor-pointer group"
               >
-                <h3 className="font-bold text-navy text-xl mb-3 group-hover:text-dorado transition">{categoria}</h3>
-                <p className="text-dorado font-medium text-sm">Ver comercios →</p>
+                <h3 className="font-label font-bold text-navy text-xl mb-3 group-hover:text-dorado transition uppercase tracking-wide">{categoria}</h3>
+                <p className="font-body text-dorado font-medium text-sm">Ver comercios →</p>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* SECCIÓN 2: COMERCIOS DESTACADOS (Solo en home) */}
+      {/* SECCIÓN 2: COMERCIOS DESTACADOS */}
       {!categoriaSeleccionada && !busqueda && negociosDestacados.length > 0 && (
         <section className="bg-papel py-16 border-t border-dorado/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <span className="bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold">DESTACADOS</span>
-              <h2 className="text-3xl font-bold text-navy mt-4 mb-4">Comercios Destacados</h2>
-              <p className="text-navy/70 max-w-2xl mx-auto">
+              <span className="font-label bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Destacados</span>
+              <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Comercios Destacados</h2>
+              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">
                 Estos comercios invierten en su visibilidad. ¡Apoyá el comercio local!
               </p>
             </div>
@@ -182,23 +182,23 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {negociosDestacados.map((negocio) => (
                 <div key={negocio.id} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-dorado text-navy px-4 py-1 font-bold text-sm rounded-bl-lg">
-                    DESTACADO
+                  <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">
+                    Destacado
                   </div>
 
-                  <h3 className="font-bold text-navy text-2xl mb-2 mt-2">{negocio.nombre}</h3>
-                  <p className="text-dorado font-medium text-sm mb-4">{negocio.categoria}</p>
-                  <p className="text-navy/70 text-sm mb-6">{negocio.descripcion}</p>
+                  <h3 className="font-display text-navy text-3xl mb-2 mt-2 tracking-wide">{negocio.nombre}</h3>
+                  <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{negocio.categoria}</p>
+                  <p className="font-body text-navy/70 text-base mb-6">{negocio.descripcion}</p>
                   
-                  <div className="space-y-3 text-sm">
+                  <div className="space-y-3 text-sm font-body">
                     {negocio.direccion && (
                       <p className="text-navy/80 flex items-start">
-                        <span className="mr-2"></span> {negocio.direccion}
+                        <span className="mr-2">📍</span> {negocio.direccion}
                       </p>
                     )}
                     {negocio.telefono && (
                       <p className="text-navy/80 flex items-start">
-                        <span className="mr-2">📞</span> {negocio.telefono}
+                        <span className="mr-2"></span> {negocio.telefono}
                       </p>
                     )}
                     {negocio.horario && (
@@ -213,7 +213,7 @@ function App() {
                       href={`https://wa.me/${negocio.whatsapp}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-6 block text-center bg-oliva text-white py-3 rounded-lg hover:bg-oliva-dark transition font-bold"
+                      className="mt-6 block text-center bg-oliva text-white py-3 rounded-lg hover:bg-oliva-dark transition font-body font-bold"
                     >
                       Contactar por WhatsApp
                     </a>
@@ -231,12 +231,12 @@ function App() {
           <div className="mb-8">
             <button 
               onClick={volverAlInicio}
-              className="text-navy hover:text-dorado font-medium mb-4 flex items-center"
+              className="font-body text-navy hover:text-dorado font-medium mb-4 flex items-center"
             >
               ← Volver al inicio
             </button>
             
-            <h2 className="text-3xl font-bold text-navy mb-4">
+            <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">
               {categoriaSeleccionada 
                 ? `Comercios en "${categoriaSeleccionada}"` 
                 : `Resultados para "${busqueda}"`}
@@ -245,10 +245,10 @@ function App() {
           
           {negociosFiltrados.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-navy/70 text-lg mb-4">No se encontraron negocios con esos criterios.</p>
+              <p className="font-body text-navy/70 text-lg mb-4">No se encontraron negocios con esos criterios.</p>
               <button 
                 onClick={volverAlInicio}
-                className="bg-navy text-white px-6 py-3 rounded-lg font-bold hover:bg-navy-light transition"
+                className="bg-navy text-white px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-light transition"
               >
                 Ver todas las categorías
               </button>
@@ -257,24 +257,24 @@ function App() {
             <div>
               {negociosDestacados.length > 0 && (
                 <div className="mb-12">
-                  <h3 className="text-xl font-bold text-navy mb-6 flex items-center">
-                    <span className="bg-dorado text-navy px-3 py-1 rounded text-sm mr-3">DESTACADOS</span>
+                  <h3 className="font-display text-2xl text-navy mb-6 flex items-center tracking-wide">
+                    <span className="font-label bg-dorado text-navy px-3 py-1 rounded text-sm mr-3 uppercase tracking-wider">Destacados</span>
                     Comercios Destacados
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {negociosDestacados.map((negocio) => (
                       <div key={negocio.id} className="bg-white p-6 rounded-lg shadow-lg border-2 border-dorado hover:shadow-xl transition duration-300 relative">
-                        <div className="absolute top-0 right-0 bg-dorado text-navy px-3 py-1 font-bold text-xs rounded-bl-lg">
-                          DESTACADO
+                        <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                          Destacado
                         </div>
                         
-                        <h3 className="font-bold text-navy text-xl mb-2 mt-2">{negocio.nombre}</h3>
-                        <p className="text-dorado font-medium text-sm mb-3">{negocio.categoria}</p>
-                        <p className="text-navy/70 text-sm mb-4">{negocio.descripcion}</p>
+                        <h3 className="font-display text-navy text-3xl mb-2 mt-2 tracking-wide">{negocio.nombre}</h3>
+                        <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{negocio.categoria}</p>
+                        <p className="font-body text-navy/70 text-base mb-4">{negocio.descripcion}</p>
                         
-                        <div className="space-y-2 text-sm text-navy/80">
+                        <div className="space-y-2 text-sm font-body text-navy/80">
                           {negocio.direccion && <p>📍 {negocio.direccion}</p>}
-                          {negocio.telefono && <p>📞 {negocio.telefono}</p>}
+                          {negocio.telefono && <p> {negocio.telefono}</p>}
                           {negocio.horario && <p>🕐 {negocio.horario}</p>}
                         </div>
 
@@ -283,7 +283,7 @@ function App() {
                             href={`https://wa.me/${negocio.whatsapp}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-4 block text-center bg-oliva text-white py-2 rounded-lg hover:bg-oliva-dark transition font-medium text-sm"
+                            className="mt-4 block text-center bg-oliva text-white py-2 rounded-lg hover:bg-oliva-dark transition font-body font-medium text-sm"
                           >
                             Contactar por WhatsApp
                           </a>
@@ -296,20 +296,20 @@ function App() {
 
               {negociosGratuitos.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-bold text-navy mb-6">
+                  <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">
                     {negociosDestacados.length > 0 ? 'Otros Comercios' : 'Todos los Comercios'}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {negociosGratuitos.map((negocio) => (
                       <div key={negocio.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border border-navy/10">
-                        <h3 className="font-bold text-navy text-xl mb-2">{negocio.nombre}</h3>
-                        <p className="text-dorado font-medium text-sm mb-3">{negocio.categoria}</p>
-                        <p className="text-navy/70 text-sm mb-4 line-clamp-2">{negocio.descripcion}</p>
+                        <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{negocio.nombre}</h3>
+                        <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{negocio.categoria}</p>
+                        <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{negocio.descripcion}</p>
                         
-                        <div className="space-y-2 text-sm text-navy/80">
+                        <div className="space-y-2 text-sm font-body text-navy/80">
                           {negocio.direccion && <p>📍 {negocio.direccion}</p>}
                           {negocio.telefono && <p>📞 {negocio.telefono}</p>}
-                          {negocio.horario && <p> {negocio.horario}</p>}
+                          {negocio.horario && <p>🕐 {negocio.horario}</p>}
                         </div>
 
                         {negocio.whatsapp && (
@@ -317,7 +317,7 @@ function App() {
                             href={`https://wa.me/${negocio.whatsapp}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-4 block text-center bg-oliva text-white py-2 rounded-lg hover:bg-oliva-dark transition font-medium text-sm"
+                            className="mt-4 block text-center bg-oliva text-white py-2 rounded-lg hover:bg-oliva-dark transition font-body font-medium text-sm"
                           >
                             Contactar por WhatsApp
                           </a>
@@ -332,63 +332,63 @@ function App() {
         </section>
       )}
 
-      {/* SECCIÓN 4: PLANES DE PATROCINIO (Solo en home) */}
+      {/* SECCIÓN 4: PLANES DE PATROCINIO */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="planes" className="bg-navy text-white py-16">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4">Destacá tu Comercio</h2>
-            <p className="text-center text-dorado-claro mb-12 max-w-2xl mx-auto">
+            <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Destacá tu Comercio</h2>
+            <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">
               Elegí el plan que mejor se adapte a tus necesidades y llegá a más clientes en Realicó.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {/* Plan Gratuito */}
               <div className="bg-crema text-navy p-8 rounded-xl shadow-lg">
-                <h3 className="text-2xl font-bold mb-2">Gratuito</h3>
-                <p className="text-navy/70 mb-6">Básico</p>
-                <ul className="space-y-3 mb-8">
+                <h3 className="font-display text-3xl mb-2 tracking-wide">Gratuito</h3>
+                <p className="font-body text-navy/70 mb-6">Básico</p>
+                <ul className="space-y-3 mb-8 font-body">
                   <li className="flex items-center">✓ Ficha básica</li>
                   <li className="flex items-center">✓ Datos de contacto</li>
                   <li className="flex items-center">✓ Búsqueda en directorio</li>
                   <li className="flex items-center text-navy/40">✗ Destacado en categoría</li>
                   <li className="flex items-center text-navy/40">✗ Badge "Destacado"</li>
                 </ul>
-                <button className="w-full bg-navy/20 text-navy py-3 rounded-lg font-bold cursor-default">
+                <button className="w-full bg-navy/20 text-navy py-3 rounded-lg font-body font-bold cursor-default">
                   Actual
                 </button>
               </div>
 
               {/* Plan Destacado */}
               <div className="bg-dorado text-navy p-8 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro">
-                <div className="bg-navy text-dorado-claro text-center py-1 rounded mb-4 font-bold">
-                  MÁS POPULAR
+                <div className="font-label bg-navy text-dorado-claro text-center py-1 rounded mb-4 font-bold uppercase tracking-wider text-sm">
+                  Más Popular
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Destacado</h3>
-                <p className="text-navy/80 mb-6">$X.XXX/mes</p>
-                <ul className="space-y-3 mb-8">
+                <h3 className="font-display text-3xl mb-2 tracking-wide">Destacado</h3>
+                <p className="font-body text-navy/80 mb-6">$X.XXX/mes</p>
+                <ul className="space-y-3 mb-8 font-body">
                   <li className="flex items-center">✓ Todo lo del plan Gratuito</li>
                   <li className="flex items-center">✓ Aparecer primero en búsquedas</li>
                   <li className="flex items-center">✓ Badge "Destacado" visible</li>
                   <li className="flex items-center">✓ Sección especial en home</li>
                   <li className="flex items-center text-navy/50">✗ Patrocinio exclusivo</li>
                 </ul>
-                <button className="w-full bg-navy text-dorado-claro py-3 rounded-lg font-bold hover:bg-navy-dark transition">
+                <button className="w-full bg-navy text-dorado-claro py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">
                   Elegir Plan
                 </button>
               </div>
 
               {/* Plan Patrocinado */}
               <div className="bg-crema text-navy p-8 rounded-xl shadow-lg">
-                <h3 className="text-2xl font-bold mb-2">Patrocinado</h3>
-                <p className="text-navy/70 mb-6">Premium</p>
-                <ul className="space-y-3 mb-8">
+                <h3 className="font-display text-3xl mb-2 tracking-wide">Patrocinado</h3>
+                <p className="font-body text-navy/70 mb-6">Premium</p>
+                <ul className="space-y-3 mb-8 font-body">
                   <li className="flex items-center">✓ Todo lo del plan Destacado</li>
                   <li className="flex items-center">✓ Banner en home</li>
                   <li className="flex items-center">✓ Logo en header</li>
                   <li className="flex items-center">✓ Redes sociales</li>
                   <li className="flex items-center">✓ Soporte prioritario</li>
                 </ul>
-                <button className="w-full bg-navy text-white py-3 rounded-lg font-bold hover:bg-navy-dark transition">
+                <button className="w-full bg-navy text-white py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">
                   Contactar
                 </button>
               </div>
@@ -402,15 +402,15 @@ function App() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h3 className="text-dorado font-bold text-lg mb-4">Realicó PyMEs</h3>
-              <p className="text-crema/60 text-sm">
+              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Realicó PyMEs</h3>
+              <p className="font-body text-crema/60 text-sm">
                 El directorio oficial de negocios y servicios de Realicó, La Pampa.
               </p>
             </div>
             
             <div>
-              <h3 className="text-dorado font-bold text-lg mb-4">Enlaces Rápidos</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Enlaces Rápidos</h3>
+              <ul className="space-y-2 text-sm font-body">
                 <li><a href="#" onClick={volverAlInicio} className="hover:text-dorado-claro transition cursor-pointer">Inicio</a></li>
                 <li><a href="#categorias" className="hover:text-dorado-claro transition">Categorías</a></li>
                 <li><button onClick={() => setMostrarFormulario(true)} className="hover:text-dorado-claro transition">Soy Comercio</button></li>
@@ -418,15 +418,15 @@ function App() {
             </div>
             
             <div>
-              <h3 className="text-dorado font-bold text-lg mb-4">Contacto</h3>
-              <p className="text-crema/60 text-sm">
+              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Contacto</h3>
+              <p className="font-body text-crema/60 text-sm">
                 ¿Tenés un comercio?<br />
                 Sumate al directorio y llegá a más clientes.
               </p>
             </div>
           </div>
           
-          <div className="border-t border-crema/20 pt-8 text-center text-sm text-crema/60">
+          <div className="border-t border-crema/20 pt-8 text-center text-sm font-body text-crema/60">
             <p>© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>
             <button 
               onClick={() => setMostrarAdmin(true)}
