@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 import FormularioComercio from './FormularioComercio'
 import AdminPanel from './AdminPanel'
+import FichaDetalle from './FichaDetalle'
 
-function App() {
+function HomePage() {
   const [busqueda, setBusqueda] = useState('')
   const [negocios, setNegocios] = useState([])
   const [negociosFiltrados, setNegociosFiltrados] = useState([])
@@ -13,6 +15,7 @@ function App() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     cargarNegocios()
@@ -27,14 +30,10 @@ function App() {
         .from('negocios')
         .select('*')
         .eq('activo', true)
+        .eq('suspendido', false)
         .order('created_at', { ascending: false })
       
-      if (error) {
-        console.error('Error de Supabase:', error)
-        setError('Error al cargar: ' + error.message)
-        setCargando(false)
-        return
-      }
+      if (error) throw error
       
       if (data && data.length > 0) {
         setNegocios(data)
@@ -50,15 +49,12 @@ function App() {
     }
   }
 
-  // Regla de ordenamiento: Patrocinado > Destacado > Estándar/Gratuito
-  // Dentro de cada nivel, ordenar por fecha de alta (más reciente primero)
   const ordenarPorPlan = (lista) => {
     const orden = { 'Patrocinado': 1, 'Destacado': 2, 'Estándar': 3, 'Estandar': 3, 'Gratuito': 4 }
     return [...lista].sort((a, b) => {
       const planA = orden[a.plan] || 4
       const planB = orden[b.plan] || 4
       if (planA !== planB) return planA - planB
-      // Si mismo plan, ordenar por fecha (más reciente primero)
       return new Date(b.created_at) - new Date(a.created_at)
     })
   }
@@ -79,12 +75,10 @@ function App() {
       resultados = resultados.filter(n => n.categoria === categoriaSeleccionada)
     }
 
-    resultados = ordenarPorPlan(resultados)
-    setNegociosFiltrados(resultados)
+    setNegociosFiltrados(ordenarPorPlan(resultados))
   }, [busqueda, categoriaSeleccionada, negocios])
 
   const categorias = [...new Set(negocios.map(n => n.categoria))]
-
   const negociosPatrocinados = negocios.filter(n => n.plan === 'Patrocinado').slice(0, 6)
   const negociosDestacados = negocios.filter(n => n.plan === 'Destacado')
 
@@ -102,21 +96,19 @@ function App() {
     window.scrollTo({top: 0, behavior: 'smooth'})
   }
 
-  const handleVerMas = (negocio) => {
-    if (negocio.whatsapp) {
-      window.open(`https://wa.me/${negocio.whatsapp}`, '_blank')
-    }
+  const handleVerFicha = (id) => {
+    navigate(`/ficha/${id}`)
   }
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* ========== MÓDULO 1: HEADER ========== */}
+      {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
-                <img src="/logo.png" alt="Realicó PyMEs Logo" className="h-10 md:h-12 w-auto" />
+                <img src="/logo.png" alt="Realicó PyMEs" className="h-10 md:h-12 w-auto" />
               </div>
             </div>
             
@@ -124,9 +116,7 @@ function App() {
               <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
               <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
               <a href="#planes" className="text-navy hover:text-dorado transition">Planes</a>
-              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">
-                Publicar
-              </button>
+              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">Publicar</button>
             </div>
 
             <button onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} className="md:hidden text-navy p-2 hover:bg-navy/10 rounded-lg transition">
@@ -153,7 +143,7 @@ function App() {
         </div>
       </nav>
 
-      {/* ========== MÓDULO 2: HERO CON BUSCADOR ========== */}
+      {/* HERO */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">El directorio de Realicó</h1>
@@ -169,46 +159,28 @@ function App() {
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
-              Buscar
-            </button>
+            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">Buscar</button>
           </div>
         </div>
       </header>
 
-      {/* ========== MÓDULO 3: PLAN PATROCINADOR (6 máx) ========== */}
+      {/* PATROCINADORES */}
       {negociosPatrocinados.length > 0 && (
         <section className="bg-dorado/10 py-16 border-b border-dorado/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <span className="font-label bg-navy text-crema px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Patrocinadores</span>
               <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Empresas Destacadas</h2>
-              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">
-                Nuestros principales patrocinadores te esperan.
-              </p>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosPatrocinados.map((n) => (
-                <div key={n.id} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden">
+                <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
-                  {n.foto_portada && (
-                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />
-                  )}
+                  {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />}
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
-                  
-                  <div className="space-y-3 text-sm font-body">
-                    {n.direccion && <p className="text-navy/80 flex items-start"><span className="mr-2">📍</span>{n.direccion}</p>}
-                    {n.telefono && <p className="text-navy/80 flex items-start"><span className="mr-2"></span>{n.telefono}</p>}
-                  </div>
-
-                  {n.whatsapp && (
-                    <button onClick={() => handleVerMas(n)} className="mt-6 block w-full text-center bg-oliva text-white py-3 rounded-lg hover:bg-oliva-dark transition font-body font-bold">
-                      Contactar por WhatsApp
-                    </button>
-                  )}
+                  <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
                 </div>
               ))}
             </div>
@@ -216,14 +188,13 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 4: EXPLORAR POR CATEGORÍAS ========== */}
+      {/* CATEGORÍAS */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="categorias" className="container mx-auto px-4 py-16">
           <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
           <p className="font-body text-navy/70 text-center mb-12 max-w-2xl mx-auto text-lg">
             Encontrá comercios, servicios, profesionales, productores y emprendimientos en Realicó y la región.
           </p>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {categorias.map((categoria, index) => (
               <div key={index} onClick={() => handleCategoriaClick(categoria)} className="bg-white p-8 rounded-lg shadow-md hover:shadow-2xl hover:-translate-y-2 transition duration-300 text-center border-2 border-transparent hover:border-dorado cursor-pointer group">
@@ -235,39 +206,23 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 5: PLAN DESTACADOS ========== */}
+      {/* DESTACADOS */}
       {!categoriaSeleccionada && !busqueda && negociosDestacados.length > 0 && (
         <section className="bg-papel py-16 border-t border-dorado/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <span className="font-label bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Destacados</span>
               <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Negocios y Servicios Destacados</h2>
-              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">
-                Quienes más invierten en su visibilidad. ¡Apoyá el desarrollo local!
-              </p>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {negociosDestacados.map((n) => (
-                <div key={n.id} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden">
+                <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
-                  {n.foto_portada && (
-                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />
-                  )}
+                  {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />}
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
-                  
-                  <div className="space-y-3 text-sm font-body">
-                    {n.direccion && <p className="text-navy/80 flex items-start"><span className="mr-2">📍</span>{n.direccion}</p>}
-                    {n.telefono && <p className="text-navy/80 flex items-start"><span className="mr-2">📞</span>{n.telefono}</p>}
-                  </div>
-
-                  {n.whatsapp && (
-                    <button onClick={() => handleVerMas(n)} className="mt-6 block w-full text-center bg-oliva text-white py-3 rounded-lg hover:bg-oliva-dark transition font-body font-bold">
-                      Contactar por WhatsApp
-                    </button>
-                  )}
+                  <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
                 </div>
               ))}
             </div>
@@ -275,7 +230,7 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 6: RESULTADOS DE BÚSQUEDA/CATEGORÍA ========== */}
+      {/* RESULTADOS */}
       {(categoriaSeleccionada || busqueda) && (
         <section id="resultados-negocios" className="container mx-auto px-4 py-16 flex-grow">
           <div className="mb-8">
@@ -283,20 +238,18 @@ function App() {
             <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">
               {categoriaSeleccionada ? `Resultados en "${categoriaSeleccionada}"` : `Resultados para "${busqueda}"`}
             </h2>
-            <p className="font-body text-navy/70 text-lg">
-              {negociosFiltrados.length} resultado{negociosFiltrados.length !== 1 ? 's' : ''} encontrado{negociosFiltrados.length !== 1 ? 's' : ''}
-            </p>
+            <p className="font-body text-navy/70 text-lg">{negociosFiltrados.length} resultado{negociosFiltrados.length !== 1 ? 's' : ''}</p>
           </div>
           
           {negociosFiltrados.length === 0 ? (
             <div className="text-center py-12">
-              <p className="font-body text-navy/70 text-lg mb-4">No se encontraron resultados con esos criterios.</p>
+              <p className="font-body text-navy/70 text-lg mb-4">No se encontraron resultados.</p>
               <button onClick={volverAlInicio} className="bg-navy text-white px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-light transition">Ver todas las categorías</button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosFiltrados.map((n) => (
-                <div key={n.id} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-2 ${
+                <div key={n.id} onClick={() => handleVerFicha(n.id)} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-2 cursor-pointer ${
                   n.plan === 'Patrocinado' ? 'border-navy' :
                   n.plan === 'Destacado' ? 'border-dorado' :
                   'border-navy/10'
@@ -306,30 +259,14 @@ function App() {
                       n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
                       n.plan === 'Destacado' ? 'bg-dorado text-navy' :
                       'bg-crema text-navy'
-                    }`}>
-                      {n.plan}
-                    </span>
+                    }`}>{n.plan}</span>
                   )}
-                  
-                  {n.foto_portada && (
-                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-40 object-cover rounded-lg mb-4" />
-                  )}
-                  
+                  {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-40 object-cover rounded-lg mb-4" />}
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
                   {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
                   <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
-                  
-                  <div className="space-y-2 text-sm font-body text-navy/80 mb-4">
-                    {n.direccion && <p>📍 {n.direccion}</p>}
-                    {n.telefono && <p>📞 {n.telefono}</p>}
-                  </div>
-
-                  {n.whatsapp && (
-                    <button onClick={() => handleVerMas(n)} className="w-full text-center bg-oliva text-white py-2 rounded-lg hover:bg-oliva-dark transition font-body font-medium text-sm">
-                      Contactar por WhatsApp
-                    </button>
-                  )}
+                  <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">Ver ficha completa →</button>
                 </div>
               ))}
             </div>
@@ -337,68 +274,58 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 7: PLANES (4 TARJETAS) ========== */}
+      {/* PLANES */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="planes" className="bg-navy text-white py-16">
           <div className="container mx-auto px-4">
             <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
             <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">
-              Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.
+              Para comercios, profesionales, productores y emprendedores.
             </p>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-              {/* Plan Gratuito */}
               <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Nombre y categoría</li>
-                  <li className="flex items-center">✓ Dirección</li>
-                  <li className="flex items-center">✓ Teléfono (texto)</li>
-                  <li className="flex items-center text-navy/40">✗ WhatsApp</li>
-                  <li className="flex items-center text-navy/40">✗ Foto</li>
+                  <li>✓ Nombre y categoría</li>
+                  <li>✓ Dirección</li>
+                  <li>✓ Teléfono (texto)</li>
                 </ul>
                 <button className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-default text-sm">Actual</button>
               </div>
-
-              {/* Plan Estándar */}
               <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Todo lo del Gratuito</li>
-                  <li className="flex items-center">✓ Botón WhatsApp</li>
-                  <li className="flex items-center">✓ 1 foto de portada</li>
-                  <li className="flex items-center">✓ Horario de atención</li>
+                  <li>✓ Todo lo del Gratuito</li>
+                  <li>✓ Botón WhatsApp</li>
+                  <li>✓ 1 foto de portada</li>
+                  <li>✓ Horario</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
-
-              {/* Plan Destacado */}
               <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro">
                 <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
                 <p className="font-body text-navy/80 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Todo lo del Estándar</li>
-                  <li className="flex items-center">✓ Galería (hasta 5 fotos)</li>
-                  <li className="flex items-center">✓ Redes sociales</li>
-                  <li className="flex items-center">✓ Google Maps</li>
-                  <li className="flex items-center">✓ Badge "Destacado"</li>
+                  <li>✓ Todo lo del Estándar</li>
+                  <li>✓ Galería (5 fotos)</li>
+                  <li>✓ Redes sociales</li>
+                  <li>✓ Google Maps</li>
+                  <li>✓ Badge "Destacado"</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
-
-              {/* Plan Patrocinado */}
               <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">Consultar</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Todo lo del Destacado</li>
-                  <li className="flex items-center">✓ Galería + 1 video</li>
-                  <li className="flex items-center">✓ Banner en home</li>
-                  <li className="flex items-center">✓ Logo en header</li>
-                  <li className="flex items-center">✓ Soporte prioritario</li>
+                  <li>✓ Todo lo del Destacado</li>
+                  <li>✓ Galería + video</li>
+                  <li>✓ Banner en home</li>
+                  <li>✓ Logo en header</li>
+                  <li>✓ Botón "Cómo llegar"</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Contactar</button>
               </div>
@@ -407,7 +334,7 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 8: CTA "PUBLICAR" ========== */}
+      {/* CTA */}
       {!categoriaSeleccionada && !busqueda && (
         <section className="bg-dorado py-16">
           <div className="container mx-auto px-4 text-center">
@@ -415,7 +342,7 @@ function App() {
             <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">
               Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.
             </p>
-            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">
               ¡Quiero Publicar!
             </button>
             <p className="font-body text-navy/60 text-sm mt-4">Es gratis y toma menos de 2 minutos</p>
@@ -423,7 +350,7 @@ function App() {
         </section>
       )}
 
-      {/* ========== MÓDULO 9: FOOTER ========== */}
+      {/* FOOTER */}
       <footer className="bg-navy-dark text-crema/80 py-12 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -431,7 +358,6 @@ function App() {
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Realicó PyMEs</h3>
               <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
             </div>
-            
             <div>
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Enlaces Rápidos</h3>
               <ul className="space-y-2 text-sm font-body">
@@ -440,13 +366,11 @@ function App() {
                 <li><button onClick={() => setMostrarFormulario(true)} className="hover:text-dorado-claro transition">Publicar</button></li>
               </ul>
             </div>
-            
             <div>
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Contacto</h3>
               <p className="font-body text-crema/60 text-sm">¿Tenés algo que ofrecer?<br />Sumate al directorio y llegá a más clientes.</p>
             </div>
           </div>
-          
           <div className="border-t border-crema/20 pt-8 text-center text-sm font-body text-crema/60">
             <p>© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>
             <button onClick={() => setMostrarAdmin(true)} className="mt-2 text-crema/40 hover:text-crema/70 text-xs">Acceso Admin</button>
@@ -457,6 +381,15 @@ function App() {
       {mostrarFormulario && <FormularioComercio onClose={() => setMostrarFormulario(false)} />}
       {mostrarAdmin && <AdminPanel onClose={() => setMostrarAdmin(false)} />}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/ficha/:id" element={<FichaDetalle />} />
+    </Routes>
   )
 }
 
