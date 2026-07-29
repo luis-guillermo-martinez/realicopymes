@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [vistaActual, setVistaActual] = useState('pendientes')
+  const [vistaActual, setVistaActual] = useState('dashboard') // 'dashboard', 'pendientes', 'publicados'
   const [filtroPlan, setFiltroPlan] = useState('Todos')
   
   const [pendientes, setPendientes] = useState([])
@@ -81,7 +81,7 @@ function AdminPanel({ onClose }) {
           foto_portada: editando.foto_portada,
           redes_sociales: redes,
           activo: true,
-          suspendido: false, // Al aprobar desde admin, nunca queda suspendido
+          suspendido: false,
           destacado: editando.plan === 'Destacado' || editando.plan === 'Patrocinado',
           estado: 'Aprobado'
         })
@@ -137,7 +137,17 @@ function AdminPanel({ onClose }) {
     }
   }
 
-  // Filtrar por plan
+  // --- CÁLCULO DE KPIs ---
+  const totalActivos = publicados.filter(n => !n.suspendido).length
+  const totalSuspendidos = publicados.filter(n => n.suspendido).length
+  const totalVistas = publicados.reduce((sum, n) => sum + (n.vistas || 0), 0)
+  
+  const conteoPorPlan = publicados.reduce((acc, n) => {
+    const plan = n.plan || 'Gratuito'
+    acc[plan] = (acc[plan] || 0) + 1
+    return acc
+  }, {})
+
   const aplicarFiltro = (lista) => {
     if (filtroPlan === 'Todos') return lista
     return lista.filter(n => n.plan === filtroPlan)
@@ -146,7 +156,7 @@ function AdminPanel({ onClose }) {
   const pendientesFiltrados = aplicarFiltro(pendientes)
   const publicadosFiltrados = aplicarFiltro(publicados)
 
-  // --- LOGIN ---
+  // --- VISTA DE LOGIN ---
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -171,7 +181,7 @@ function AdminPanel({ onClose }) {
     )
   }
 
-  // --- EDICIÓN ---
+  // --- VISTA DE EDICIÓN ---
   if (editando) {
     return (
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
@@ -180,7 +190,7 @@ function AdminPanel({ onClose }) {
             <h1 className="font-display text-3xl text-navy tracking-wide">
               {editando.activo ? 'Editar Negocio Publicado' : 'Revisar y Aprobar Solicitud'}
             </h1>
-            <button onClick={() => setEditando(null)} className="font-body text-navy hover:text-dorado font-bold flex items-center gap-2">← Volver a la lista</button>
+            <button onClick={() => setEditando(null)} className="font-body text-navy hover:text-dorado font-bold flex items-center gap-2">← Volver</button>
           </div>
 
           {mensaje && (
@@ -284,7 +294,7 @@ function AdminPanel({ onClose }) {
     )
   }
 
-  // --- LISTA CON PESTAÑAS Y FILTRO ---
+  // --- VISTA PRINCIPAL (DASHBOARD + LISTAS) ---
   return (
     <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -299,8 +309,16 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* PESTAÑAS */}
-        <div className="flex gap-2 mb-4">
+        {/* PESTAÑAS DE NAVEGACIÓN */}
+        <div className="flex gap-2 mb-6">
+          <button 
+            onClick={() => setVistaActual('dashboard')}
+            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
+              vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
+            }`}
+          >
+            📊 Dashboard
+          </button>
           <button 
             onClick={() => setVistaActual('pendientes')}
             className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
@@ -319,112 +337,174 @@ function AdminPanel({ onClose }) {
           </button>
         </div>
 
-        {/* FILTRO POR PLAN */}
-        <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3">
-          <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
-          <div className="flex flex-wrap gap-2">
-            {PLANES.map(plan => (
-              <button
-                key={plan}
-                onClick={() => setFiltroPlan(plan)}
-                className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${
-                  filtroPlan === plan
-                    ? 'bg-navy text-crema'
-                    : 'bg-crema text-navy hover:bg-navy/10'
-                }`}
-              >
-                {plan}
-              </button>
-            ))}
-          </div>
-          <button onClick={cargarDatos} className="ml-auto text-xs bg-navy/10 px-3 py-1 rounded hover:bg-navy/20 transition font-bold">🔄 Actualizar</button>
-        </div>
+        {/* CONTENIDO DEL DASHBOARD */}
+        {vistaActual === 'dashboard' && (
+          <div className="space-y-8">
+            {/* Tarjetas de KPIs Principales */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-oliva">
+                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Negocios Activos</p>
+                <p className="font-display text-4xl text-navy tracking-wide">{totalActivos}</p>
+                <p className="font-body text-xs text-navy/50 mt-2">De un total de {publicados.length} registrados</p>
+              </div>
+              
+              <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-dorado">
+                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Pendientes de Aprobación</p>
+                <p className="font-display text-4xl text-navy tracking-wide">{pendientes.length}</p>
+                <p className="font-body text-xs text-navy/50 mt-2">Requieren tu revisión</p>
+              </div>
 
-        <div className="bg-white rounded-b-xl rounded-tr-xl shadow-lg overflow-hidden">
-          {cargando ? (
-            <div className="p-8 text-center text-navy/60 font-body">Cargando datos...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-crema text-navy uppercase text-xs font-label tracking-wider">
-                  <tr>
-                    <th className="p-4">Negocio</th>
-                    <th className="p-4">Contacto</th>
-                    <th className="p-4">Categoría / Plan</th>
-                    <th className="p-4">Vistas</th>
-                    <th className="p-4 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-navy/10 font-body text-sm">
-                  {(vistaActual === 'pendientes' ? pendientesFiltrados : publicadosFiltrados).length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="p-12 text-center text-navy/60">
-                        <p className="text-4xl mb-4">{vistaActual === 'pendientes' ? '' : '📭'}</p>
-                        <p className="text-lg font-bold">No hay registros en esta sección{filtroPlan !== 'Todos' ? ` con plan "${filtroPlan}"` : ''}.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    (vistaActual === 'pendientes' ? pendientesFiltrados : publicadosFiltrados).map((sol) => (
-                      <tr key={sol.id} className={`hover:bg-crema/50 transition ${sol.suspendido ? 'bg-red-50' : ''}`}>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-navy">{sol.nombre}</span>
-                            {sol.suspendido && (
-                              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded font-label uppercase">Suspendido</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-navy/60">{sol.tipo}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-navy">{sol.nombre_contacto || 'No especificado'}</div>
-                          <div className="text-xs text-navy/60">{sol.telefono}</div>
-                        </td>
-                        <td className="p-4">
-                          <span className="inline-block bg-crema text-navy text-xs px-2 py-1 rounded mb-1 border border-navy/10">{sol.categoria}</span>
-                          <br />
-                          <span className={`inline-block text-xs px-2 py-1 rounded font-bold ${
-                            sol.plan === 'Patrocinado' ? 'bg-navy text-crema' :
-                            sol.plan === 'Destacado' ? 'bg-dorado text-navy' :
-                            'bg-gray-200 text-gray-700'
-                          }`}>{sol.plan}</span>
-                        </td>
-                        <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} ️</td>
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            <button
-                              onClick={() => setEditando(sol)}
-                              className="bg-dorado text-navy px-3 py-1.5 rounded-lg font-bold hover:bg-dorado-claro transition text-xs flex items-center gap-1"
-                            >
-                              ✏️ Editar
-                            </button>
-                            {vistaActual === 'publicados' && (
-                              <button
-                                onClick={() => toggleSuspender(sol)}
-                                className={`px-3 py-1.5 rounded-lg font-bold transition text-xs flex items-center gap-1 ${
-                                  sol.suspendido 
-                                    ? 'bg-green-500 text-white hover:bg-green-600' 
-                                    : 'bg-orange-500 text-white hover:bg-orange-600'
-                                }`}
-                              >
-                                {sol.suspendido ? '🔄 Reactivar' : '️ Suspender'}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => eliminarNegocio(sol.id, sol.nombre)}
-                              className="bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-red-600 transition text-xs flex items-center gap-1"
-                            >
-                              🗑️ Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-navy">
+                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Vistas Totales</p>
+                <p className="font-display text-4xl text-navy tracking-wide">{totalVistas.toLocaleString()}</p>
+                <p className="font-body text-xs text-navy/50 mt-2">Impacto generado en la web</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
+                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Suspendidos</p>
+                <p className="font-display text-4xl text-navy tracking-wide">{totalSuspendidos}</p>
+                <p className="font-body text-xs text-navy/50 mt-2">Por falta de pago o revisión</p>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Desglose por Plan */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">Distribución por Plan (Activos)</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gray-100 p-4 rounded-lg text-center">
+                  <p className="font-label text-gray-600 text-xs uppercase font-bold">Gratuito</p>
+                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Gratuito'] || 0}</p>
+                </div>
+                <div className="bg-crema p-4 rounded-lg text-center border border-navy/10">
+                  <p className="font-label text-navy/70 text-xs uppercase font-bold">Estándar</p>
+                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Estándar'] || 0}</p>
+                </div>
+                <div className="bg-dorado/20 p-4 rounded-lg text-center border border-dorado">
+                  <p className="font-label text-navy text-xs uppercase font-bold">Destacado</p>
+                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Destacado'] || 0}</p>
+                </div>
+                <div className="bg-navy p-4 rounded-lg text-center">
+                  <p className="font-label text-crema/80 text-xs uppercase font-bold">Patrocinado</p>
+                  <p className="font-display text-3xl text-crema mt-1">{conteoPorPlan['Patrocinado'] || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Últimos Registros */}
+            <div className="bg-white p-6 rounded-xl shadow-md">
+              <h3 className="font-display text-2xl text-navy mb-4 tracking-wide">Últimos 5 Registros</h3>
+              <div className="space-y-3">
+                {[...pendientes, ...publicados]
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                  .slice(0, 5)
+                  .map((n) => (
+                    <div key={n.id} className="flex justify-between items-center p-3 bg-crema/30 rounded-lg hover:bg-crema transition cursor-pointer" onClick={() => setEditando(n)}>
+                      <div>
+                        <p className="font-body font-bold text-navy">{n.nombre}</p>
+                        <p className="font-body text-xs text-navy/60">{n.tipo} • {n.plan}</p>
+                      </div>
+                      <span className={`font-label text-xs px-2 py-1 rounded ${
+                        n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'
+                      }`}>
+                        {n.activo ? (n.suspendido ? 'Suspendido' : 'Activo') : 'Pendiente'}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENIDO DE LISTAS (Pendientes o Publicados) */}
+        {vistaActual !== 'dashboard' && (
+          <>
+            {/* FILTRO POR PLAN */}
+            <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3 rounded-t-xl">
+              <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
+              <div className="flex flex-wrap gap-2">
+                {PLANES.map(plan => (
+                  <button
+                    key={plan}
+                    onClick={() => setFiltroPlan(plan)}
+                    className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${
+                      filtroPlan === plan ? 'bg-navy text-crema' : 'bg-crema text-navy hover:bg-navy/10'
+                    }`}
+                  >
+                    {plan}
+                  </button>
+                ))}
+              </div>
+              <button onClick={cargarDatos} className="ml-auto text-xs bg-navy/10 px-3 py-1 rounded hover:bg-navy/20 transition font-bold">🔄 Actualizar</button>
+            </div>
+
+            <div className="bg-white rounded-b-xl shadow-lg overflow-hidden">
+              {cargando ? (
+                <div className="p-8 text-center text-navy/60 font-body">Cargando datos...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-crema text-navy uppercase text-xs font-label tracking-wider">
+                      <tr>
+                        <th className="p-4">Negocio</th>
+                        <th className="p-4">Contacto</th>
+                        <th className="p-4">Categoría / Plan</th>
+                        <th className="p-4">Vistas</th>
+                        <th className="p-4 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-navy/10 font-body text-sm">
+                      {(vistaActual === 'pendientes' ? pendientesFiltrados : publicadosFiltrados).length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="p-12 text-center text-navy/60">
+                            <p className="text-4xl mb-4">{vistaActual === 'pendientes' ? '' : '📭'}</p>
+                            <p className="text-lg font-bold">No hay registros en esta sección{filtroPlan !== 'Todos' ? ` con plan "${filtroPlan}"` : ''}.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        (vistaActual === 'pendientes' ? pendientesFiltrados : publicadosFiltrados).map((sol) => (
+                          <tr key={sol.id} className={`hover:bg-crema/50 transition ${sol.suspendido ? 'bg-red-50' : ''}`}>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-navy">{sol.nombre}</span>
+                                {sol.suspendido && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded font-label uppercase">Suspendido</span>}
+                              </div>
+                              <div className="text-xs text-navy/60">{sol.tipo}</div>
+                            </td>
+                            <td className="p-4">
+                              <div className="text-navy">{sol.nombre_contacto || 'No especificado'}</div>
+                              <div className="text-xs text-navy/60">{sol.telefono}</div>
+                            </td>
+                            <td className="p-4">
+                              <span className="inline-block bg-crema text-navy text-xs px-2 py-1 rounded mb-1 border border-navy/10">{sol.categoria}</span>
+                              <br />
+                              <span className={`inline-block text-xs px-2 py-1 rounded font-bold ${
+                                sol.plan === 'Patrocinado' ? 'bg-navy text-crema' :
+                                sol.plan === 'Destacado' ? 'bg-dorado text-navy' :
+                                'bg-gray-200 text-gray-700'
+                              }`}>{sol.plan}</span>
+                            </td>
+                            <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} 👁️</td>
+                            <td className="p-4">
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                <button onClick={() => setEditando(sol)} className="bg-dorado text-navy px-3 py-1.5 rounded-lg font-bold hover:bg-dorado-claro transition text-xs flex items-center gap-1">✏️ Editar</button>
+                                {vistaActual === 'publicados' && (
+                                  <button onClick={() => toggleSuspender(sol)} className={`px-3 py-1.5 rounded-lg font-bold transition text-xs flex items-center gap-1 ${sol.suspendido ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
+                                    {sol.suspendido ? '🔄 Reactivar' : '⏸️ Suspender'}
+                                  </button>
+                                )}
+                                <button onClick={() => eliminarNegocio(sol.id, sol.nombre)} className="bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-red-600 transition text-xs flex items-center gap-1">🗑️ Eliminar</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
