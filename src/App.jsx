@@ -50,13 +50,16 @@ function App() {
     }
   }
 
-  // Función para ordenar por plan (de más caro a más barato)
+  // Regla de ordenamiento: Patrocinado > Destacado > Estándar/Gratuito
+  // Dentro de cada nivel, ordenar por fecha de alta (más reciente primero)
   const ordenarPorPlan = (lista) => {
     const orden = { 'Patrocinado': 1, 'Destacado': 2, 'Estándar': 3, 'Estandar': 3, 'Gratuito': 4 }
     return [...lista].sort((a, b) => {
       const planA = orden[a.plan] || 4
       const planB = orden[b.plan] || 4
-      return planA - planB
+      if (planA !== planB) return planA - planB
+      // Si mismo plan, ordenar por fecha (más reciente primero)
+      return new Date(b.created_at) - new Date(a.created_at)
     })
   }
 
@@ -76,14 +79,12 @@ function App() {
       resultados = resultados.filter(n => n.categoria === categoriaSeleccionada)
     }
 
-    // Ordenar de plan más caro a más barato
     resultados = ordenarPorPlan(resultados)
     setNegociosFiltrados(resultados)
   }, [busqueda, categoriaSeleccionada, negocios])
 
   const categorias = [...new Set(negocios.map(n => n.categoria))]
 
-  // Separar por plan
   const negociosPatrocinados = negocios.filter(n => n.plan === 'Patrocinado').slice(0, 6)
   const negociosDestacados = negocios.filter(n => n.plan === 'Destacado')
 
@@ -101,7 +102,6 @@ function App() {
     window.scrollTo({top: 0, behavior: 'smooth'})
   }
 
-  // Función para el botón "Ver más" (por ahora abre WhatsApp, luego será la ficha)
   const handleVerMas = (negocio) => {
     if (negocio.whatsapp) {
       window.open(`https://wa.me/${negocio.whatsapp}`, '_blank')
@@ -192,13 +192,16 @@ function App() {
               {negociosPatrocinados.map((n) => (
                 <div key={n.id} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
-                  <h3 className="font-display text-navy text-3xl mb-2 mt-2 tracking-wide">{n.nombre}</h3>
+                  {n.foto_portada && (
+                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />
+                  )}
+                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
                   
                   <div className="space-y-3 text-sm font-body">
                     {n.direccion && <p className="text-navy/80 flex items-start"><span className="mr-2">📍</span>{n.direccion}</p>}
-                    {n.telefono && <p className="text-navy/80 flex items-start"><span className="mr-2">📞</span>{n.telefono}</p>}
+                    {n.telefono && <p className="text-navy/80 flex items-start"><span className="mr-2"></span>{n.telefono}</p>}
                   </div>
 
                   {n.whatsapp && (
@@ -248,7 +251,10 @@ function App() {
               {negociosDestacados.map((n) => (
                 <div key={n.id} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
-                  <h3 className="font-display text-navy text-3xl mb-2 mt-2 tracking-wide">{n.nombre}</h3>
+                  {n.foto_portada && (
+                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />
+                  )}
+                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
                   
@@ -295,7 +301,6 @@ function App() {
                   n.plan === 'Destacado' ? 'border-dorado' :
                   'border-navy/10'
                 }`}>
-                  {/* Badge del plan */}
                   {n.plan && n.plan !== 'Gratuito' && (
                     <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
                       n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
@@ -304,6 +309,10 @@ function App() {
                     }`}>
                       {n.plan}
                     </span>
+                  )}
+                  
+                  {n.foto_portada && (
+                    <img src={n.foto_portada} alt={n.nombre} className="w-full h-40 object-cover rounded-lg mb-4" />
                   )}
                   
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
@@ -343,10 +352,11 @@ function App() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Ficha básica</li>
-                  <li className="flex items-center">✓ Datos de contacto</li>
-                  <li className="flex items-center">✓ Búsqueda en directorio</li>
-                  <li className="flex items-center text-navy/40">✗ Destacado</li>
+                  <li className="flex items-center">✓ Nombre y categoría</li>
+                  <li className="flex items-center">✓ Dirección</li>
+                  <li className="flex items-center">✓ Teléfono (texto)</li>
+                  <li className="flex items-center text-navy/40">✗ WhatsApp</li>
+                  <li className="flex items-center text-navy/40">✗ Foto</li>
                 </ul>
                 <button className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-default text-sm">Actual</button>
               </div>
@@ -357,9 +367,9 @@ function App() {
                 <p className="font-body text-navy/70 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li className="flex items-center">✓ Todo lo del Gratuito</li>
-                  <li className="flex items-center">✓ Más visibilidad</li>
-                  <li className="flex items-center">✓ Fotos adicionales</li>
-                  <li className="flex items-center text-navy/40">✗ Badge destacado</li>
+                  <li className="flex items-center">✓ Botón WhatsApp</li>
+                  <li className="flex items-center">✓ 1 foto de portada</li>
+                  <li className="flex items-center">✓ Horario de atención</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
@@ -371,9 +381,10 @@ function App() {
                 <p className="font-body text-navy/80 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li className="flex items-center">✓ Todo lo del Estándar</li>
+                  <li className="flex items-center">✓ Galería (hasta 5 fotos)</li>
+                  <li className="flex items-center">✓ Redes sociales</li>
+                  <li className="flex items-center">✓ Google Maps</li>
                   <li className="flex items-center">✓ Badge "Destacado"</li>
-                  <li className="flex items-center">✓ Aparece primero</li>
-                  <li className="flex items-center">✓ Sección especial</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
@@ -384,9 +395,10 @@ function App() {
                 <p className="font-body text-navy/70 mb-4 font-semibold">Consultar</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li className="flex items-center">✓ Todo lo del Destacado</li>
+                  <li className="flex items-center">✓ Galería + 1 video</li>
                   <li className="flex items-center">✓ Banner en home</li>
                   <li className="flex items-center">✓ Logo en header</li>
-                  <li className="flex items-center">✓ Redes sociales</li>
+                  <li className="flex items-center">✓ Soporte prioritario</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Contactar</button>
               </div>
