@@ -18,7 +18,6 @@ function FichaDetalle() {
     try {
       setCargando(true)
       
-      // 1. Obtener datos del negocio
       const { data, error } = await supabase
         .from('negocios')
         .select('*')
@@ -29,7 +28,6 @@ function FichaDetalle() {
       setNegocio(data)
       setFotoPrincipal(data.foto_portada)
 
-      // 2. Incrementar contador de vistas
       await supabase
         .from('negocios')
         .update({ vistas: (data.vistas || 0) + 1 })
@@ -43,7 +41,6 @@ function FichaDetalle() {
     }
   }
 
-  // Obtener redes sociales (puede ser string o JSON)
   const getRedes = () => {
     if (!negocio.redes_sociales) return {}
     if (typeof negocio.redes_sociales === 'string') {
@@ -53,7 +50,6 @@ function FichaDetalle() {
     return negocio.redes_sociales
   }
 
-  // Obtener galería
   const getGaleria = () => {
     if (!negocio.galeria) return []
     if (typeof negocio.galeria === 'string') {
@@ -88,18 +84,45 @@ function FichaDetalle() {
   const redes = getRedes()
   const galeria = getGaleria()
   const todasLasFotos = [negocio.foto_portada, ...galeria].filter(Boolean)
+  
+  const plan = negocio.plan || 'Gratuito'
+  const esEstándar = plan === 'Estándar'
+  const esDestacado = plan === 'Destacado'
+  const esPatrocinado = plan === 'Patrocinado'
+  const tieneFoto = esEstándar || esDestacado || esPatrocinado
+  const tieneWhatsApp = esEstándar || esDestacado || esPatrocinado
+  const tieneHorario = esEstándar || esDestacado || esPatrocinado
+  const tieneRedes = esDestacado || esPatrocinado
+  const tieneMapa = esDestacado || esPatrocinado
+  const tieneGalería = esDestacado || esPatrocinado
+  const tieneVideo = esPatrocinado
 
-  // Plan badge
-  const planBadge = {
-    'Patrocinado': 'bg-navy text-crema',
-    'Destacado': 'bg-dorado text-navy',
-    'Estándar': 'bg-crema text-navy border border-navy/20',
-    'Gratuito': 'bg-gray-200 text-gray-700'
+  const planColors = {
+    'Gratuito': { badge: 'bg-gray-300 text-gray-700', border: 'border-gray-300', accent: 'text-gray-600' },
+    'Estándar': { badge: 'bg-crema text-navy border border-navy/20', border: 'border-navy/20', accent: 'text-navy' },
+    'Destacado': { badge: 'bg-dorado text-navy', border: 'border-dorado', accent: 'text-dorado' },
+    'Patrocinado': { badge: 'bg-navy text-crema', border: 'border-navy', accent: 'text-navy' }
+  }
+  const colors = planColors[plan] || planColors['Gratuito']
+
+  const getMapsUrl = () => {
+    if (negocio.google_maps_url) return negocio.google_maps_url
+    if (negocio.direccion) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio.direccion + ', Realicó, La Pampa, Argentina')}`
+    }
+    return null
+  }
+
+  const getMapsEmbedUrl = () => {
+    if (negocio.direccion) {
+      return `https://www.google.com/maps?q=${encodeURIComponent(negocio.direccion + ', Realicó, La Pampa, Argentina')}&output=embed`
+    }
+    return null
   }
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* HEADER SIMPLE */}
+      {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <button onClick={() => navigate('/')} className="cursor-pointer flex items-center">
@@ -111,27 +134,51 @@ function FichaDetalle() {
         </div>
       </nav>
 
-      {/* HERO DE LA FICHA */}
-      <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-12">
+      {/* BANNER PATROCINADO */}
+      {esPatrocinado && negocio.banner_url && (
+        <div className="w-full h-48 md:h-64 overflow-hidden">
+          <img src={negocio.banner_url} alt={`Banner ${negocio.nombre}`} className="w-full h-full object-cover" />
+        </div>
+      )}
+
+      {/* HERO */}
+      <header className={`bg-gradient-to-b from-navy to-navy-dark text-white py-12 ${esPatrocinado ? 'pt-8' : ''}`}>
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Foto principal */}
-            <div className="w-full md:w-1/3">
-              {fotoPrincipal ? (
-                <img src={fotoPrincipal} alt={negocio.nombre} className="w-full h-64 object-cover rounded-xl shadow-2xl" />
-              ) : (
-                <div className="w-full h-64 bg-navy-light rounded-xl flex items-center justify-center">
-                  <span className="font-display text-6xl text-crema/30">{negocio.nombre.charAt(0)}</span>
-                </div>
-              )}
-            </div>
+            {/* IMAGEN REDONDA TIPO AVATAR */}
+            {tieneFoto && (
+              <div className="flex-shrink-0">
+                {fotoPrincipal ? (
+                  <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 ${
+                    esPatrocinado ? 'border-crema shadow-2xl' :
+                    esDestacado ? 'border-dorado shadow-xl' :
+                    'border-white/30 shadow-lg'
+                  }`}>
+                    <img 
+                      src={fotoPrincipal} 
+                      alt={negocio.nombre} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full flex items-center justify-center border-4 ${
+                    esPatrocinado ? 'border-crema bg-navy-light' :
+                    esDestacado ? 'border-dorado bg-navy-light' :
+                    'border-white/30 bg-navy-light'
+                  }`}>
+                    <span className="font-display text-6xl text-crema/50">{negocio.nombre.charAt(0)}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Info principal */}
-            <div className="flex-1">
+            <div className={`flex-1 ${!tieneFoto ? 'w-full' : ''}`}>
               <div className="flex flex-wrap items-center gap-3 mb-3">
-                <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${planBadge[negocio.plan] || planBadge['Gratuito']}`}>
-                  {negocio.plan || 'Gratuito'}
-                </span>
+                {(esDestacado || esPatrocinado) && (
+                  <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colors.badge}`}>
+                    {plan}
+                  </span>
+                )}
                 <span className="font-label text-dorado-claro text-sm uppercase tracking-wide">{negocio.tipo}</span>
                 {negocio.vistas > 0 && (
                   <span className="font-body text-crema/60 text-xs">👁 {negocio.vistas} vistas</span>
@@ -144,7 +191,7 @@ function FichaDetalle() {
 
               {negocio.direccion && (
                 <p className="font-body text-crema/80 mt-4 flex items-center gap-2">
-                  <span>📍</span> {negocio.direccion}
+                  <span></span> {negocio.direccion}
                 </p>
               )}
             </div>
@@ -155,11 +202,10 @@ function FichaDetalle() {
       {/* CONTENIDO PRINCIPAL */}
       <main className="container mx-auto px-4 py-12 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* COLUMNA IZQUIERDA: Info completa */}
+          {/* COLUMNA IZQUIERDA */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* GALERÍA (Estándar y superiores) */}
-            {todasLasFotos.length > 0 && (
+            {tieneGalería && todasLasFotos.length > 1 && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Galería</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -176,8 +222,7 @@ function FichaDetalle() {
               </section>
             )}
 
-            {/* VIDEO (solo Patrocinado) */}
-            {negocio.plan === 'Patrocinado' && negocio.video_url && (
+            {tieneVideo && negocio.video_url && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Video</h2>
                 <div className="aspect-video bg-navy/5 rounded-lg overflow-hidden">
@@ -191,121 +236,134 @@ function FichaDetalle() {
               </section>
             )}
 
-            {/* HORARIO (Estándar y superiores) */}
-            {negocio.horario && (
+            {tieneHorario && negocio.horario && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">Horario de atención</h2>
                 <p className="font-body text-navy text-lg">{negocio.horario}</p>
               </section>
             )}
 
-            {/* MAPA (Destacado y Patrocinado) */}
-            {negocio.coordenadas && (negocio.plan === 'Destacado' || negocio.plan === 'Patrocinado') && (
-              <section className="bg-white p-6 rounded-xl shadow-md">
-                <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">Ubicación</h2>
-                {negocio.coordenadas.includes('google.com/maps') ? (
-                  <iframe 
-                    src={negocio.coordenadas.replace('place/', 'embed?pb=').split('?')[0] + '?output=embed'}
-                    className="w-full h-80 rounded-lg"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                ) : (
-                  <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio.coordenadas)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-dorado text-navy py-4 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition"
-                  >
-                     Ver en Google Maps
-                  </a>
-                )}
-              </section>
-            )}
-          </div>
-
-          {/* COLUMNA DERECHA: Contacto */}
-          <aside className="space-y-6">
-            {/* Tarjeta de contacto */}
-            <div className="bg-white p-6 rounded-xl shadow-lg sticky top-24">
-              <h2 className="font-display text-2xl text-navy mb-4 tracking-wide">Contacto</h2>
+            {/* SECCIÓN CONTACTO */}
+            <section className="bg-white p-6 rounded-xl shadow-md">
+              <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Contacto</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {negocio.telefono && (
-                  <div>
+                  <div className="border-b border-navy/10 pb-4">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Teléfono</p>
-                    <a href={`tel:${negocio.telefono}`} className="font-body text-navy font-semibold hover:text-dorado transition">
+                    <a href={`tel:${negocio.telefono}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition block mb-3">
                       {negocio.telefono}
                     </a>
+                    {tieneWhatsApp && negocio.whatsapp && (
+                      <a 
+                        href={`https://wa.me/${negocio.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition"
+                      >
+                         Contactar por WhatsApp
+                      </a>
+                    )}
                   </div>
                 )}
 
                 {negocio.email && (
                   <div>
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Email</p>
-                    <a href={`mailto:${negocio.email}`} className="font-body text-navy font-semibold hover:text-dorado transition break-all">
+                    <a href={`mailto:${negocio.email}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition break-all block mb-3">
                       {negocio.email}
+                    </a>
+                    <a 
+                      href={`mailto:${negocio.email}?subject=Consulta desde Realicó PyMEs - ${negocio.nombre}`}
+                      className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition"
+                    >
+                      ✉️ Enviar Email
                     </a>
                   </div>
                 )}
+              </div>
+            </section>
+          </div>
 
-                {negocio.whatsapp && (
-                  <a 
-                    href={`https://wa.me/${negocio.whatsapp}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition"
-                  >
-                     Contactar por WhatsApp
-                  </a>
+          {/* COLUMNA DERECHA: UBICACIÓN */}
+          <aside className="space-y-6">
+            {tieneMapa && (
+              <div className="bg-white p-6 rounded-xl shadow-lg sticky top-24">
+                <h2 className="font-display text-2xl text-navy mb-4 tracking-wide">Ubicación</h2>
+                
+                {negocio.direccion && (
+                  <div className="mb-4 p-4 bg-crema/50 rounded-lg border-l-4 border-dorado">
+                    <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Dirección</p>
+                    <p className="font-body text-navy text-base font-semibold flex items-start gap-2">
+                      <span className="text-dorado">📍</span> {negocio.direccion}
+                    </p>
+                  </div>
                 )}
 
-                {negocio.plan === 'Patrocinado' && negocio.coordenadas && (
-                  <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio.coordenadas)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition"
-                  >
-                    📍 Cómo llegar
-                  </a>
+                {getMapsEmbedUrl() && (
+                  <div className="mb-4 rounded-lg overflow-hidden border border-navy/10">
+                    <iframe 
+                      src={getMapsEmbedUrl()}
+                      className="w-full h-64 border-0"
+                      allowFullScreen
+                      loading="lazy"
+                      title={`Ubicación de ${negocio.nombre}`}
+                    />
+                  </div>
+                )}
+
+                <a 
+                  href={getMapsUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition"
+                >
+                  📍 Ver ubicación en Google Maps
+                </a>
+
+                {tieneRedes && (redes.instagram || redes.facebook) && (
+                  <div className="border-t border-navy/10 pt-4 mt-6">
+                    <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Seguinos en</p>
+                    <div className="flex gap-3">
+                      {redes.instagram && (
+                        <a 
+                          href={`https://instagram.com/${redes.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:opacity-90 transition"
+                        >
+                          Instagram
+                        </a>
+                      )}
+                      {redes.facebook && (
+                        <a 
+                          href={redes.facebook.startsWith('http') ? redes.facebook : `https://facebook.com/${redes.facebook}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:bg-blue-700 transition"
+                        >
+                          Facebook
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              {/* Redes sociales (Destacado y Patrocinado) */}
-              {(redes.instagram || redes.facebook) && (
-                <div className="border-t border-navy/10 pt-4 mt-6">
-                  <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Seguinos en</p>
-                  <div className="flex gap-3">
-                    {redes.instagram && (
-                      <a 
-                        href={`https://instagram.com/${redes.instagram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:opacity-90 transition"
-                      >
-                        Instagram
-                      </a>
-                    )}
-                    {redes.facebook && (
-                      <a 
-                        href={redes.facebook.startsWith('http') ? redes.facebook : `https://facebook.com/${redes.facebook}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:bg-blue-700 transition"
-                      >
-                        Facebook
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            {plan === 'Gratuito' && (
+              <div className="bg-dorado/10 p-6 rounded-xl border-2 border-dorado/30">
+                <p className="font-label text-navy font-bold text-base mb-2">¿Querés más visibilidad?</p>
+                <p className="font-body text-navy/70 text-sm mb-4">Actualizá tu plan para tener WhatsApp, fotos, horario, mapa y más.</p>
+                <button onClick={() => navigate('/')} className="w-full bg-dorado text-navy py-3 rounded-lg font-body font-bold hover:bg-dorado-claro transition">
+                  Ver planes disponibles
+                </button>
+              </div>
+            )}
           </aside>
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-navy-dark text-crema/80 py-8 mt-auto">
         <div className="container mx-auto px-4 text-center">
           <p className="font-body text-sm text-crema/60">© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>

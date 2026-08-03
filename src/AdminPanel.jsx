@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [vistaActual, setVistaActual] = useState('dashboard') // 'dashboard', 'pendientes', 'publicados'
+  const [vistaActual, setVistaActual] = useState('dashboard')
   const [filtroPlan, setFiltroPlan] = useState('Todos')
   
   const [pendientes, setPendientes] = useState([])
@@ -79,6 +79,7 @@ function AdminPanel({ onClose }) {
           horario: editando.horario,
           plan: editando.plan,
           foto_portada: editando.foto_portada,
+          google_maps_url: editando.google_maps_url,
           redes_sociales: redes,
           activo: true,
           suspendido: false,
@@ -137,7 +138,6 @@ function AdminPanel({ onClose }) {
     }
   }
 
-  // --- CÁLCULO DE KPIs ---
   const totalActivos = publicados.filter(n => !n.suspendido).length
   const totalSuspendidos = publicados.filter(n => n.suspendido).length
   const totalVistas = publicados.reduce((sum, n) => sum + (n.vistas || 0), 0)
@@ -156,7 +156,6 @@ function AdminPanel({ onClose }) {
   const pendientesFiltrados = aplicarFiltro(pendientes)
   const publicadosFiltrados = aplicarFiltro(publicados)
 
-  // --- VISTA DE LOGIN ---
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -181,7 +180,6 @@ function AdminPanel({ onClose }) {
     )
   }
 
-  // --- VISTA DE EDICIÓN ---
   if (editando) {
     return (
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
@@ -263,11 +261,15 @@ function AdminPanel({ onClose }) {
             </div>
 
             <div className="border-t border-navy/10 pt-6">
-              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia y Redes</h3>
+              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia, Ubicación y Redes</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">URL Foto de Portada</label>
                   <input name="foto_portada" value={editando.foto_portada || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Link de Google Maps</label>
+                  <input name="google_maps_url" value={editando.google_maps_url || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="https://maps.app.goo.gl/..." />
                 </div>
                 <div>
                   <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Instagram (sin @)</label>
@@ -294,7 +296,6 @@ function AdminPanel({ onClose }) {
     )
   }
 
-  // --- VISTA PRINCIPAL (DASHBOARD + LISTAS) ---
   return (
     <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -309,7 +310,6 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* PESTAÑAS DE NAVEGACIÓN */}
         <div className="flex gap-2 mb-6">
           <button 
             onClick={() => setVistaActual('dashboard')}
@@ -337,10 +337,8 @@ function AdminPanel({ onClose }) {
           </button>
         </div>
 
-        {/* CONTENIDO DEL DASHBOARD */}
         {vistaActual === 'dashboard' && (
           <div className="space-y-8">
-            {/* Tarjetas de KPIs Principales */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-oliva">
                 <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Negocios Activos</p>
@@ -367,7 +365,6 @@ function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* Desglose por Plan */}
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">Distribución por Plan (Activos)</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -390,7 +387,6 @@ function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* Últimos Registros */}
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-display text-2xl text-navy mb-4 tracking-wide">Últimos 5 Registros</h3>
               <div className="space-y-3">
@@ -415,10 +411,8 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* CONTENIDO DE LISTAS (Pendientes o Publicados) */}
         {vistaActual !== 'dashboard' && (
           <>
-            {/* FILTRO POR PLAN */}
             <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3 rounded-t-xl">
               <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
               <div className="flex flex-wrap gap-2">
@@ -456,7 +450,7 @@ function AdminPanel({ onClose }) {
                       {(vistaActual === 'pendientes' ? pendientesFiltrados : publicadosFiltrados).length === 0 ? (
                         <tr>
                           <td colSpan="5" className="p-12 text-center text-navy/60">
-                            <p className="text-4xl mb-4">{vistaActual === 'pendientes' ? '' : '📭'}</p>
+                            <p className="text-4xl mb-4">{vistaActual === 'pendientes' ? '' : ''}</p>
                             <p className="text-lg font-bold">No hay registros en esta sección{filtroPlan !== 'Todos' ? ` con plan "${filtroPlan}"` : ''}.</p>
                           </td>
                         </tr>

@@ -13,6 +13,7 @@ function FormularioComercio({ onClose }) {
     descripcion: '',
     direccion: '',
     horario: '',
+    google_maps_url: '',
     plan: 'Gratuito',
     instagram: '',
     facebook: '',
@@ -35,7 +36,7 @@ function FormularioComercio({ onClose }) {
 
 🏪 *Negocio:* ${datos.nombre}
 📂 *Tipo:* ${datos.tipo}
- *Categoría:* ${datos.categoria}
+📁 *Categoría:* ${datos.categoria}
 👤 *Contacto:* ${datos.nombre_contacto}
 📞 *Teléfono:* ${datos.telefono}
 📱 *WhatsApp:* ${datos.whatsapp}
@@ -43,10 +44,11 @@ function FormularioComercio({ onClose }) {
 💬 *Descripción:* ${datos.descripcion || 'Sin descripción'}
 📍 *Dirección:* ${datos.direccion || 'No especificada'}
 ⏰ *Horario:* ${datos.horario || 'No especificado'}
- *Plan:* ${datos.plan}
+🗺️ *Google Maps:* ${datos.google_maps_url || 'No especificado'}
+💼 *Plan:* ${datos.plan}
 📱 *Instagram:* ${datos.instagram || '-'}
 📘 *Facebook:* ${datos.facebook || '-'}
- *Recomendación:* ${datos.recomendacion || 'Sin recomendación'}
+👥 *Recomendación:* ${datos.recomendacion || 'Sin recomendación'}
     `.trim()
 
     try {
@@ -79,6 +81,7 @@ function FormularioComercio({ onClose }) {
         descripcion: formData.descripcion,
         direccion: formData.direccion,
         horario: formData.horario,
+        google_maps_url: formData.google_maps_url,
         plan: formData.plan,
         activo: false,
         destacado: formData.plan === 'Destacado' || formData.plan === 'Patrocinado',
@@ -129,7 +132,6 @@ function FormularioComercio({ onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* SECCIÓN 1: DATOS DEL NEGOCIO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Nombre del negocio o profesión *</label>
@@ -177,7 +179,6 @@ function FormularioComercio({ onClose }) {
             </div>
           </div>
 
-          {/* SECCIÓN 2: PERSONA DE CONTACTO */}
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Persona de contacto</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -203,7 +204,6 @@ function FormularioComercio({ onClose }) {
             </div>
           </div>
 
-          {/* SECCIÓN 3: INFORMACIÓN DEL NEGOCIO */}
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Información del negocio</h3>
             <div className="space-y-4">
@@ -222,11 +222,15 @@ function FormularioComercio({ onClose }) {
                   <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Horario</label>
                   <input type="text" name="horario" value={formData.horario} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Lun a Vie 9:00 - 18:00" />
                 </div>
+
+                <div className="md:col-span-2">
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Link de Google Maps (opcional)</label>
+                  <input type="text" name="google_maps_url" value={formData.google_maps_url} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="https://maps.app.goo.gl/..." />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SECCIÓN 4: REDES SOCIALES */}
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Redes sociales (opcional)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -241,7 +245,6 @@ function FormularioComercio({ onClose }) {
             </div>
           </div>
 
-          {/* SECCIÓN 5: RECOMENDACIÓN */}
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">¿Quién te recomendó?</h3>
             <div>
