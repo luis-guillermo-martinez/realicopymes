@@ -14,7 +14,7 @@ function AdminPanel({ onClose }) {
   const [editando, setEditando] = useState(null)
   const [mensaje, setMensaje] = useState('')
 
-  const ADMIN_PASSWORD = 'realico2026'
+  const ADMIN_PASSWORD = 'mipin2026'
   const PLANES = ['Todos', 'Gratuito', 'Estándar', 'Destacado', 'Patrocinado']
 
   useEffect(() => {
@@ -160,7 +160,7 @@ function AdminPanel({ onClose }) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
-          <h2 className="font-display text-2xl text-navy mb-6 text-center tracking-wide">Acceso Administrador</h2>
+          <h2 className="font-display text-2xl text-navy mb-6 text-center tracking-wide">Acceso MiPin</h2>
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="password"
@@ -300,7 +300,7 @@ function AdminPanel({ onClose }) {
     <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="font-display text-3xl text-navy tracking-wide">Panel de Administración</h1>
+          <h1 className="font-display text-3xl text-navy tracking-wide">Panel de MiPin</h1>
           <button onClick={onClose} className="bg-red-500 text-white px-4 py-2 rounded-lg font-body font-bold hover:bg-red-600 transition">Salir</button>
         </div>
 

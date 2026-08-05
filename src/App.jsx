@@ -17,24 +17,19 @@ function HomePage() {
   const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    cargarNegocios()
-  }, [])
+  useEffect(() => { cargarNegocios() }, [])
 
   const cargarNegocios = async () => {
     try {
       setCargando(true)
       setError(null)
-      
       const { data, error } = await supabase
         .from('negocios')
         .select('*')
         .eq('activo', true)
         .eq('suspendido', false)
         .order('created_at', { ascending: false })
-      
       if (error) throw error
-      
       if (data && data.length > 0) {
         setNegocios(data)
         setNegociosFiltrados(data)
@@ -61,7 +56,6 @@ function HomePage() {
 
   useEffect(() => {
     let resultados = negocios
-
     if (busqueda) {
       resultados = resultados.filter(n =>
         n.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -70,11 +64,9 @@ function HomePage() {
         (n.tipo && n.tipo.toLowerCase().includes(busqueda.toLowerCase()))
       )
     }
-
     if (categoriaSeleccionada) {
       resultados = resultados.filter(n => n.categoria === categoriaSeleccionada)
     }
-
     setNegociosFiltrados(ordenarPorPlan(resultados))
   }, [busqueda, categoriaSeleccionada, negocios])
 
@@ -93,32 +85,30 @@ function HomePage() {
   const volverAlInicio = () => {
     setCategoriaSeleccionada(null)
     setBusqueda('')
-    window.scrollTo({top: 0, behavior: 'smooth'})
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleVerFicha = (id) => {
-    navigate(`/ficha/${id}`)
-  }
+  const handleVerFicha = (id) => { navigate(`/ficha/${id}`) }
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* HEADER */}
+      {/* ========== MÓDULO 1: HEADER ========== */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
-                <img src="/logo.png" alt="Realicó PyMEs" className="h-10 md:h-12 w-auto" />
+                <img src="/logo.png" alt="MiPin" className="h-14 md:h-16 w-auto" />
               </div>
             </div>
-            
             <div className="hidden md:flex items-center space-x-8 font-body font-semibold">
               <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
               <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
               <a href="#planes" className="text-navy hover:text-dorado transition">Planes</a>
-              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">Publicar</button>
+              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">
+                Publicar
+              </button>
             </div>
-
             <button onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} className="md:hidden text-navy p-2 hover:bg-navy/10 rounded-lg transition">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mostrarMenuMovil ? (
@@ -129,32 +119,30 @@ function HomePage() {
               </svg>
             </button>
           </div>
-
           {mostrarMenuMovil && (
             <div className="md:hidden mt-4 pb-4 border-t border-navy/10 pt-4">
               <div className="flex flex-col space-y-3 font-body font-semibold">
-                <a href="#" onClick={() => {volverAlInicio(); setMostrarMenuMovil(false)}} className="text-navy hover:text-dorado transition py-2">Inicio</a>
+                <a href="#" onClick={() => { volverAlInicio(); setMostrarMenuMovil(false) }} className="text-navy hover:text-dorado transition py-2">Inicio</a>
                 <a href="#categorias" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2">Categorías</a>
                 <a href="#planes" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2">Planes</a>
-                <button onClick={() => {setMostrarFormulario(true); setMostrarMenuMovil(false)}} className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center">Publicar</button>
+                <button onClick={() => { setMostrarFormulario(true); setMostrarMenuMovil(false) }} className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center">Publicar</button>
               </div>
             </div>
           )}
         </div>
       </nav>
 
-      {/* HERO */}
+      {/* ========== MÓDULO 2: HERO CON BUSCADOR (SLOGAN EN BEBAS MAYÚSCULAS) ========== */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">El directorio de Realicó</h1>
+          <h1 className="font-display text-6xl md:text-8xl mb-2 tracking-wide">A un pin de distancia</h1>
           <p className="font-body text-xl md:text-2xl mb-10 text-dorado-claro max-w-2xl mx-auto font-medium">
-            Comercios, servicios, profesiones, productores locales y emprendimientos de La Pampa.
+            Comercios, servicios, profesiones, productores y emprendimientos de tu ciudad. Todo en tu bolsillo.
           </p>
-          
           <div className="max-w-3xl mx-auto bg-crema p-3 rounded-lg shadow-2xl flex flex-col md:flex-row gap-2">
-            <input 
-              type="text" 
-              placeholder="¿Qué buscás? Ejemplo: Panadería, Abogado, Miel, Diseño..." 
+            <input
+              type="text"
+              placeholder="¿Qué buscás? Ejemplo: Panadería, Abogado, Miel, Diseño..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
@@ -164,13 +152,14 @@ function HomePage() {
         </div>
       </header>
 
-      {/* PATROCINADORES */}
+      {/* ========== MÓDULO 3: PLAN PATROCINADOR (6 máx) ========== */}
       {negociosPatrocinados.length > 0 && (
         <section className="bg-dorado/10 py-16 border-b border-dorado/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <span className="font-label bg-navy text-crema px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Patrocinadores</span>
               <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Empresas Destacadas</h2>
+              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">Nuestros principales patrocinadores te esperan.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosPatrocinados.map((n) => (
@@ -188,7 +177,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* CATEGORÍAS */}
+      {/* ========== MÓDULO 4: EXPLORAR POR CATEGORÍAS ========== */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="categorias" className="container mx-auto px-4 py-16">
           <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
@@ -206,13 +195,14 @@ function HomePage() {
         </section>
       )}
 
-      {/* DESTACADOS */}
+      {/* ========== MÓDULO 5: PLAN DESTACADOS ========== */}
       {!categoriaSeleccionada && !busqueda && negociosDestacados.length > 0 && (
         <section className="bg-papel py-16 border-t border-dorado/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <span className="font-label bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Destacados</span>
               <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Negocios y Servicios Destacados</h2>
+              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">Quienes más invierten en su visibilidad. ¡Apoyá el desarrollo local!</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {negociosDestacados.map((n) => (
@@ -230,7 +220,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* RESULTADOS */}
+      {/* ========== MÓDULO 6: RESULTADOS ========== */}
       {(categoriaSeleccionada || busqueda) && (
         <section id="resultados-negocios" className="container mx-auto px-4 py-16 flex-grow">
           <div className="mb-8">
@@ -240,7 +230,6 @@ function HomePage() {
             </h2>
             <p className="font-body text-navy/70 text-lg">{negociosFiltrados.length} resultado{negociosFiltrados.length !== 1 ? 's' : ''}</p>
           </div>
-          
           {negociosFiltrados.length === 0 ? (
             <div className="text-center py-12">
               <p className="font-body text-navy/70 text-lg mb-4">No se encontraron resultados.</p>
@@ -274,7 +263,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* PLANES */}
+      {/* ========== MÓDULO 7: PLANES (4 TARJETAS) ========== */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="planes" className="bg-navy text-white py-16">
           <div className="container mx-auto px-4">
@@ -334,13 +323,13 @@ function HomePage() {
         </section>
       )}
 
-      {/* CTA */}
+      {/* ========== MÓDULO 8: CTA ========== */}
       {!categoriaSeleccionada && !busqueda && (
         <section className="bg-dorado py-16">
           <div className="container mx-auto px-4 text-center">
             <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">¿Tenés algo que ofrecer?</h2>
             <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">
-              Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.
+              Sumá tu comercio, servicio, profesión, producto local o emprendimiento a MiPin y llegá a miles de clientes.
             </p>
             <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">
               ¡Quiero Publicar!
@@ -350,13 +339,13 @@ function HomePage() {
         </section>
       )}
 
-      {/* FOOTER */}
+      {/* ========== MÓDULO 9: FOOTER ========== */}
       <footer className="bg-navy-dark text-crema/80 py-12 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Realicó PyMEs</h3>
-              <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
+              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">MiPin</h3>
+              <p className="font-body text-crema/60 text-sm">A un pin de distancia. El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
             </div>
             <div>
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Enlaces Rápidos</h3>
@@ -372,7 +361,7 @@ function HomePage() {
             </div>
           </div>
           <div className="border-t border-crema/20 pt-8 text-center text-sm font-body text-crema/60">
-            <p>© 2026 Realicó PyMEs. Hecho con ❤️ para La Pampa.</p>
+            <p>© 2026 MiPin. A un pin de distancia.</p>
             <button onClick={() => setMostrarAdmin(true)} className="mt-2 text-crema/40 hover:text-crema/70 text-xs">Acceso Admin</button>
           </div>
         </div>

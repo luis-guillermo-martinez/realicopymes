@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Aplicar Barlow como fuente base para todo el cuerpo */
+/* Cuerpo en Barlow */
 body {
   font-family: 'Barlow', sans-serif;
   font-weight: 400;
@@ -10,19 +10,19 @@ body {
   background-color: #F4F1E6;
 }
 
-/* Suavizado de fuentes para mejor legibilidad */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Títulos con Bebas Neue por defecto */
+/* Títulos en Bebas Neue, condensada y EN MAYÚSCULAS (como el letrero de abajo) */
 h1, h2, h3 {
   font-family: 'Bebas Neue', sans-serif;
   letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-/* Etiquetas y categorías con Barlow Semi Condensed */
+/* Etiquetas y badges */
 .eyebrow, .label, .category-tag {
   font-family: 'Barlow Semi Condensed', sans-serif;
   font-weight: 600;
