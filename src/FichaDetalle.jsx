@@ -8,7 +8,7 @@ function FichaDetalle() {
   const [negocio, setNegocio] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
-  const [fotoPrincipal, setFotoPrincipal] = useState(null)
+  const [fotoLightbox, setFotoLightbox] = useState(null)
 
   useEffect(() => {
     cargarFicha()
@@ -24,7 +24,6 @@ function FichaDetalle() {
         .single()
       if (error) throw error
       setNegocio(data)
-      setFotoPrincipal(data.foto_portada)
       await supabase
         .from('negocios')
         .update({ vistas: (data.vistas || 0) + 1 })
@@ -78,6 +77,7 @@ function FichaDetalle() {
   }
 
   const redes = getRedes()
+  // ✅ SOLO las 3 fotos de la galería (NO incluye la foto de perfil)
   const galeria = getGaleria().slice(0, 3)
   const plan = negocio.plan || 'Gratuito'
   const esEstándar = plan === 'Estándar'
@@ -88,7 +88,7 @@ function FichaDetalle() {
   const tieneHorario = esEstándar || esDestacado || esPatrocinado
   const tieneRedes = esDestacado || esPatrocinado
   const tieneMapa = esDestacado || esPatrocinado
-  const tieneGaleria = esDestacado || esPatrocinado
+  const tieneGalería = esDestacado || esPatrocinado
   const tieneVideo = esPatrocinado
 
   const planColors = {
@@ -116,6 +116,29 @@ function FichaDetalle() {
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
+      {/* ========== VISOR DE FOTO (LIGHTBOX) ========== */}
+      {fotoLightbox && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setFotoLightbox(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full text-2xl font-bold transition"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+          <img
+            src={fotoLightbox}
+            alt={negocio.nombre}
+            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+          />
+          <p className="absolute bottom-4 left-0 right-0 text-center text-crema/60 text-sm font-body">
+            Tocá afuera para cerrar
+          </p>
+        </div>
+      )}
+
       {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -139,15 +162,20 @@ function FichaDetalle() {
       <header className={`bg-gradient-to-b from-navy to-navy-dark text-white py-12 ${esPatrocinado ? 'pt-8' : ''}`}>
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-8 items-start">
+            {/* FOTO DE PERFIL ESTÁTICA (nunca cambia) */}
             {tieneFoto && (
               <div className="flex-shrink-0 mx-auto md:mx-0">
-                {fotoPrincipal ? (
+                {negocio.foto_portada ? (
                   <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 ${
                     esPatrocinado ? 'border-crema shadow-2xl' :
                     esDestacado ? 'border-dorado shadow-xl' :
                     'border-white/30 shadow-lg'
                   }`}>
-                    <img src={fotoPrincipal} alt={negocio.nombre} className="w-full h-full object-cover" />
+                    <img
+                      src={negocio.foto_portada}
+                      alt={negocio.nombre}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 ) : (
                   <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full flex items-center justify-center border-4 ${
@@ -160,7 +188,7 @@ function FichaDetalle() {
                 )}
               </div>
             )}
-            <div className={`flex-1 text-center md:text-left ${!tieneFoto ? 'w-full' : ''}`}>
+            <div className={`flex-1 ${!tieneFoto ? 'w-full' : ''} text-center md:text-left`}>
               <div className="flex flex-wrap items-center gap-3 mb-3 justify-center md:justify-start">
                 {(esDestacado || esPatrocinado) && (
                   <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colors.badge}`}>
@@ -190,8 +218,8 @@ function FichaDetalle() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* COLUMNA IZQUIERDA */}
           <div className="lg:col-span-2 space-y-8">
-            {/* 📷 GALERÍA ESTILO INSTAGRAM (3 cuadradas) */}
-            {tieneGaleria && galeria.length > 0 && (
+            {/* ✅ GALERÍA: solo las 3 fotos de galería (sin la de perfil) */}
+            {tieneGalería && galeria.length > 0 && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Galería</h2>
                 <div className="grid grid-cols-3 gap-2">
@@ -200,8 +228,8 @@ function FichaDetalle() {
                       key={idx}
                       src={foto}
                       alt={`${negocio.nombre} ${idx + 1}`}
-                      className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
-                      onClick={() => setFotoPrincipal(foto)}
+                      className="w-full aspect-square object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition"
+                      onClick={() => setFotoLightbox(foto)}
                     />
                   ))}
                 </div>
@@ -226,7 +254,7 @@ function FichaDetalle() {
                 <p className="font-body text-navy text-lg">{negocio.horario}</p>
               </section>
             )}
-            {/* CONTACTO */}
+            {/* SECCIÓN CONTACTO */}
             <section className="bg-white p-6 rounded-xl shadow-md">
               <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Contacto</h2>
               <div className="space-y-6">
@@ -296,7 +324,6 @@ function FichaDetalle() {
                     📍 Ver ubicación en Google Maps
                   </a>
                 )}
-                {/* ✅ REDES SOCIALES VISIBLES CON SU USUARIO */}
                 {tieneRedes && (redes.instagram || redes.facebook) && (
                   <div className="border-t border-navy/10 pt-4 mt-6">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Seguinos en</p>
