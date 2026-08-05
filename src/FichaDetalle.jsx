@@ -10,16 +10,25 @@ function FichaDetalle() {
   const [error, setError] = useState(null)
   const [fotoPrincipal, setFotoPrincipal] = useState(null)
 
-  useEffect(() => { cargarFicha() }, [id])
+  useEffect(() => {
+    cargarFicha()
+  }, [id])
 
   const cargarFicha = async () => {
     try {
       setCargando(true)
-      const { data, error } = await supabase.from('negocios').select('*').eq('id', id).single()
+      const { data, error } = await supabase
+        .from('negocios')
+        .select('*')
+        .eq('id', id)
+        .single()
       if (error) throw error
       setNegocio(data)
       setFotoPrincipal(data.foto_portada)
-      await supabase.from('negocios').update({ vistas: (data.vistas || 0) + 1 }).eq('id', id)
+      await supabase
+        .from('negocios')
+        .update({ vistas: (data.vistas || 0) + 1 })
+        .eq('id', id)
     } catch (err) {
       console.error('Error cargando ficha:', err)
       setError('No se encontró esta ficha.')
@@ -31,7 +40,8 @@ function FichaDetalle() {
   const getRedes = () => {
     if (!negocio.redes_sociales) return {}
     if (typeof negocio.redes_sociales === 'string') {
-      try { return JSON.parse(negocio.redes_sociales) } catch { return {} }
+      try { return JSON.parse(negocio.redes_sociales) }
+      catch { return {} }
     }
     return negocio.redes_sociales
   }
@@ -39,7 +49,8 @@ function FichaDetalle() {
   const getGaleria = () => {
     if (!negocio.galeria) return []
     if (typeof negocio.galeria === 'string') {
-      try { return JSON.parse(negocio.galeria) } catch { return [] }
+      try { return JSON.parse(negocio.galeria) }
+      catch { return [] }
     }
     return Array.isArray(negocio.galeria) ? negocio.galeria : []
   }
@@ -58,15 +69,16 @@ function FichaDetalle() {
         <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-md">
           <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">Ficha no encontrada</h2>
           <p className="font-body text-navy/70 mb-6">{error}</p>
-          <button onClick={() => navigate('/')} className="bg-navy text-crema px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">Volver al inicio</button>
+          <button onClick={() => navigate('/')} className="bg-navy text-crema px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">
+            Volver al inicio
+          </button>
         </div>
       </div>
     )
   }
 
   const redes = getRedes()
-  const galeria = getGaleria()
-  const todasLasFotos = [negocio.foto_portada, ...galeria].filter(Boolean)
+  const galeria = getGaleria().slice(0, 3)
   const plan = negocio.plan || 'Gratuito'
   const esEstándar = plan === 'Estándar'
   const esDestacado = plan === 'Destacado'
@@ -76,7 +88,7 @@ function FichaDetalle() {
   const tieneHorario = esEstándar || esDestacado || esPatrocinado
   const tieneRedes = esDestacado || esPatrocinado
   const tieneMapa = esDestacado || esPatrocinado
-  const tieneGalería = esDestacado || esPatrocinado
+  const tieneGaleria = esDestacado || esPatrocinado
   const tieneVideo = esPatrocinado
 
   const planColors = {
@@ -108,7 +120,7 @@ function FichaDetalle() {
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <button onClick={() => navigate('/')} className="cursor-pointer flex items-center">
-            <img src="/logo.png" alt="MiPin" className="h-14 md:h-16 w-auto" />
+            <img src="/logo.png" alt="MiPin" className="h-10 md:h-12 w-auto" />
           </button>
           <button onClick={() => navigate('/')} className="font-body text-navy hover:text-dorado font-semibold flex items-center gap-2">
             ← Volver al directorio
@@ -128,7 +140,7 @@ function FichaDetalle() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-8 items-start">
             {tieneFoto && (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mx-auto md:mx-0">
                 {fotoPrincipal ? (
                   <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 ${
                     esPatrocinado ? 'border-crema shadow-2xl' :
@@ -148,10 +160,12 @@ function FichaDetalle() {
                 )}
               </div>
             )}
-            <div className={`flex-1 ${!tieneFoto ? 'w-full' : ''}`}>
-              <div className="flex flex-wrap items-center gap-3 mb-3">
+            <div className={`flex-1 text-center md:text-left ${!tieneFoto ? 'w-full' : ''}`}>
+              <div className="flex flex-wrap items-center gap-3 mb-3 justify-center md:justify-start">
                 {(esDestacado || esPatrocinado) && (
-                  <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colors.badge}`}>{plan}</span>
+                  <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colors.badge}`}>
+                    {plan}
+                  </span>
                 )}
                 <span className="font-label text-dorado-claro text-sm uppercase tracking-wide">{negocio.tipo}</span>
                 {negocio.vistas > 0 && (
@@ -162,7 +176,7 @@ function FichaDetalle() {
               <p className="font-label text-dorado-claro text-lg uppercase tracking-wide mb-4">{negocio.categoria}</p>
               <p className="font-body text-crema/90 text-lg leading-relaxed">{negocio.descripcion}</p>
               {negocio.direccion && (
-                <p className="font-body text-crema/80 mt-4 flex items-center gap-2">
+                <p className="font-body text-crema/80 mt-4 flex items-center gap-2 justify-center md:justify-start">
                   <span>📍</span> {negocio.direccion}
                 </p>
               )}
@@ -171,16 +185,24 @@ function FichaDetalle() {
         </div>
       </header>
 
-      {/* CONTENIDO */}
+      {/* CONTENIDO PRINCIPAL */}
       <main className="container mx-auto px-4 py-12 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* COLUMNA IZQUIERDA */}
           <div className="lg:col-span-2 space-y-8">
-            {tieneGalería && todasLasFotos.length > 1 && (
+            {/* 📷 GALERÍA ESTILO INSTAGRAM (3 cuadradas) */}
+            {tieneGaleria && galeria.length > 0 && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Galería</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {todasLasFotos.map((foto, idx) => (
-                    <img key={idx} src={foto} alt={`${negocio.nombre} ${idx + 1}`} className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition" onClick={() => setFotoPrincipal(foto)} />
+                <div className="grid grid-cols-3 gap-2">
+                  {galeria.map((foto, idx) => (
+                    <img
+                      key={idx}
+                      src={foto}
+                      alt={`${negocio.nombre} ${idx + 1}`}
+                      className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition"
+                      onClick={() => setFotoPrincipal(foto)}
+                    />
                   ))}
                 </div>
               </section>
@@ -189,7 +211,12 @@ function FichaDetalle() {
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Video</h2>
                 <div className="aspect-video bg-navy/5 rounded-lg overflow-hidden">
-                  <iframe src={negocio.video_url.replace('watch?v=', 'embed/')} className="w-full h-full" allowFullScreen title={`Video de ${negocio.nombre}`} />
+                  <iframe
+                    src={negocio.video_url.replace('watch?v=', 'embed/')}
+                    className="w-full h-full"
+                    allowFullScreen
+                    title={`Video de ${negocio.nombre}`}
+                  />
                 </div>
               </section>
             )}
@@ -206,9 +233,14 @@ function FichaDetalle() {
                 {negocio.telefono && (
                   <div className="border-b border-navy/10 pb-4">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Teléfono</p>
-                    <a href={`tel:${negocio.telefono}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition block mb-3">{negocio.telefono}</a>
+                    <p className="font-body text-navy text-lg font-semibold mb-3">{negocio.telefono}</p>
                     {tieneWhatsApp && negocio.whatsapp && (
-                      <a href={`https://wa.me/${negocio.whatsapp}`} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">
+                      <a
+                        href={`https://wa.me/${negocio.whatsapp}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition"
+                      >
                         Contactar por WhatsApp
                       </a>
                     )}
@@ -217,8 +249,11 @@ function FichaDetalle() {
                 {negocio.email && (
                   <div>
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Email</p>
-                    <a href={`mailto:${negocio.email}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition break-all block mb-3">{negocio.email}</a>
-                    <a href={`mailto:${negocio.email}?subject=Consulta desde MiPin - ${negocio.nombre}`} className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">
+                    <p className="font-body text-navy text-lg font-semibold break-all mb-3">{negocio.email}</p>
+                    <a
+                      href={`mailto:${negocio.email}?subject=Consulta desde MiPin - ${negocio.nombre}`}
+                      className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition"
+                    >
                       ✉️ Enviar Email
                     </a>
                   </div>
@@ -242,21 +277,51 @@ function FichaDetalle() {
                 )}
                 {getMapsEmbedUrl() && (
                   <div className="mb-4 rounded-lg overflow-hidden border border-navy/10">
-                    <iframe src={getMapsEmbedUrl()} className="w-full h-64 border-0" allowFullScreen loading="lazy" title={`Ubicación de ${negocio.nombre}`} />
+                    <iframe
+                      src={getMapsEmbedUrl()}
+                      className="w-full h-64 border-0"
+                      allowFullScreen
+                      loading="lazy"
+                      title={`Ubicación de ${negocio.nombre}`}
+                    />
                   </div>
                 )}
-                <a href={getMapsUrl()} target="_blank" rel="noopener noreferrer" className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition">
-                  📍 Ver ubicación en Google Maps
-                </a>
+                {getMapsUrl() && (
+                  <a
+                    href={getMapsUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition"
+                  >
+                    📍 Ver ubicación en Google Maps
+                  </a>
+                )}
+                {/* ✅ REDES SOCIALES VISIBLES CON SU USUARIO */}
                 {tieneRedes && (redes.instagram || redes.facebook) && (
                   <div className="border-t border-navy/10 pt-4 mt-6">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Seguinos en</p>
-                    <div className="flex gap-3">
+                    <div className="space-y-2">
                       {redes.instagram && (
-                        <a href={`https://instagram.com/${redes.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:opacity-90 transition">Instagram</a>
+                        <a
+                          href={`https://instagram.com/${redes.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-3 rounded-lg font-body font-bold text-sm hover:opacity-90 transition"
+                        >
+                          <span>📷 Instagram</span>
+                          <span className="font-normal">@{redes.instagram.replace('@', '')}</span>
+                        </a>
                       )}
                       {redes.facebook && (
-                        <a href={redes.facebook.startsWith('http') ? redes.facebook : `https://facebook.com/${redes.facebook}`} target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:bg-blue-700 transition">Facebook</a>
+                        <a
+                          href={redes.facebook.startsWith('http') ? redes.facebook : `https://facebook.com/${redes.facebook}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between bg-blue-600 text-white py-2 px-3 rounded-lg font-body font-bold text-sm hover:bg-blue-700 transition"
+                        >
+                          <span>📘 Facebook</span>
+                          <span className="font-normal">{redes.facebook.replace('https://', '').replace('http://', '').replace('facebook.com/', '')}</span>
+                        </a>
                       )}
                     </div>
                   </div>
@@ -267,7 +332,9 @@ function FichaDetalle() {
               <div className="bg-dorado/10 p-6 rounded-xl border-2 border-dorado/30">
                 <p className="font-label text-navy font-bold text-base mb-2">¿Querés más visibilidad?</p>
                 <p className="font-body text-navy/70 text-sm mb-4">Actualizá tu plan para tener WhatsApp, fotos, horario, mapa y más.</p>
-                <button onClick={() => navigate('/')} className="w-full bg-dorado text-navy py-3 rounded-lg font-body font-bold hover:bg-dorado-claro transition">Ver planes disponibles</button>
+                <button onClick={() => navigate('/')} className="w-full bg-dorado text-navy py-3 rounded-lg font-body font-bold hover:bg-dorado-claro transition">
+                  Ver planes disponibles
+                </button>
               </div>
             )}
           </aside>

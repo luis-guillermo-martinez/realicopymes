@@ -3,19 +3,36 @@ import { supabase } from './supabase'
 
 function FormularioComercio({ onClose }) {
   const [formData, setFormData] = useState({
-    nombre: '', tipo: 'Comercio', categoria: '', nombre_contacto: '', telefono: '', whatsapp: '', email: '', descripcion: '', direccion: '', horario: '', google_maps_url: '', plan: 'Gratuito', instagram: '', facebook: '', recomendacion: ''
+    nombre: '',
+    tipo: 'Comercio',
+    categoria: '',
+    nombre_contacto: '',
+    telefono: '',
+    whatsapp: '',
+    email: '',
+    descripcion: '',
+    direccion: '',
+    horario: '',
+    google_maps_url: '',
+    plan: 'Gratuito',
+    instagram: '',
+    facebook: '',
+    recomendacion: ''
   })
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }) }
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const enviarTelegram = async (datos) => {
-    const token = 'TU_TOKEN_DE_TELEGRAM_AQUI' // ¡Recordá poner tu token!
-    const chatId = 'TU_CHAT_ID_AQUI'          // ¡Recordá poner tu chat ID!
+    // ⚠️ REEMPLAZÁ CON TUS CREDENCIALES REALES DE TELEGRAM
+    const token = '8148372070:AAGcVESfbNhZuXAKss2v9lnOXa6_qyj90z4'
+    const chatId = '6436917492'
     const mensaje = `
-📋 *NUEVA PUBLICACIÓN EN MIPIN*
+📋 *NUEVA PUBLICACIÓN - MiPin*
 🏪 *Negocio:* ${datos.nombre}
 📂 *Tipo:* ${datos.tipo}
 📁 *Categoría:* ${datos.categoria}
@@ -31,13 +48,18 @@ function FormularioComercio({ onClose }) {
 📱 *Instagram:* ${datos.instagram || '-'}
 📘 *Facebook:* ${datos.facebook || '-'}
 👥 *Recomendación:* ${datos.recomendacion || 'Sin recomendación'}
-    `.trim()
+`.trim()
     try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const respuesta = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: mensaje, parse_mode: 'Markdown' })
       })
-    } catch (err) { console.error('Error Telegram:', err) }
+      if (!respuesta.ok) throw new Error(`Error Telegram: ${respuesta.status}`)
+      console.log('✅ Telegram enviado')
+    } catch (err) {
+      console.error('❌ Error Telegram:', err)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -45,12 +67,29 @@ function FormularioComercio({ onClose }) {
     setEnviando(true)
     setError('')
     try {
+      // ⚠️ CLAVE: facebook e instagram NO son columnas sueltas.
+      // Van DENTRO de "redes_sociales" como JSON.
       const datosParaDB = {
-        ...formData,
+        nombre: formData.nombre,
+        tipo: formData.tipo,
+        categoria: formData.categoria,
+        nombre_contacto: formData.nombre_contacto,
+        telefono: formData.telefono,
+        whatsapp: formData.whatsapp,
+        email: formData.email,
+        descripcion: formData.descripcion,
+        direccion: formData.direccion,
+        horario: formData.horario,
+        google_maps_url: formData.google_maps_url,
+        plan: formData.plan,
         activo: false,
         destacado: formData.plan === 'Destacado' || formData.plan === 'Patrocinado',
         vistas: 0,
-        redes_sociales: JSON.stringify({ instagram: formData.instagram, facebook: formData.facebook }),
+        redes_sociales: JSON.stringify({
+          instagram: formData.instagram,
+          facebook: formData.facebook
+        }),
+        recomendacion: formData.recomendacion
       }
       const { error } = await supabase.from('negocios').insert([datosParaDB])
       if (error) throw error
@@ -60,7 +99,9 @@ function FormularioComercio({ onClose }) {
     } catch (err) {
       console.error('Error:', err)
       setError('Hubo un error: ' + err.message)
-    } finally { setEnviando(false) }
+    } finally {
+      setEnviando(false)
+    }
   }
 
   if (exito) {
@@ -69,7 +110,9 @@ function FormularioComercio({ onClose }) {
         <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
           <div className="text-oliva text-6xl mb-4">✓</div>
           <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">¡Publicación Enviada!</h2>
-          <p className="font-body text-navy/70 mb-6">Revisaremos tu publicación y te contactaremos en las próximas 48 horas.</p>
+          <p className="font-body text-navy/70 mb-6">
+            Revisaremos tu publicación y te contactaremos en las próximas 48 horas.
+          </p>
           <button onClick={onClose} className="bg-navy text-crema px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">Cerrar</button>
         </div>
       </div>
@@ -86,25 +129,44 @@ function FormularioComercio({ onClose }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Nombre del negocio *</label>
-              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Nombre del negocio o profesión *</label>
+              <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Panadería La Espiga" />
             </div>
             <div>
               <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Tipo *</label>
               <select name="tipo" value={formData.tipo} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm">
-                <option value="Comercio">Comercio</option><option value="Servicio">Servicio</option><option value="Profesión">Profesión</option><option value="Productor Local">Productor Local</option><option value="Emprendimiento">Emprendimiento</option>
+                <option value="Comercio">Comercio</option>
+                <option value="Servicio">Servicio</option>
+                <option value="Profesión">Profesión</option>
+                <option value="Productor Local">Productor Local</option>
+                <option value="Emprendimiento">Emprendimiento</option>
               </select>
             </div>
             <div>
               <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categoría *</label>
               <select name="categoria" value={formData.categoria} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm">
-                <option value="">Seleccionar...</option><option value="Gastronomía">Gastronomía</option><option value="Salud y Farmacias">Salud y Farmacias</option><option value="Servicios y Oficios">Servicios y Oficios</option><option value="Agropecuario">Agropecuario</option><option value="Automotor">Automotor</option><option value="Construcción">Construcción</option><option value="Educación">Educación</option><option value="Turismo">Turismo</option><option value="Profesiones">Profesiones</option><option value="Productores">Productores</option><option value="Emprendimientos">Emprendimientos</option><option value="Otro">Otro</option>
+                <option value="">Seleccionar...</option>
+                <option value="Gastronomía">Gastronomía</option>
+                <option value="Salud y Farmacias">Salud y Farmacias</option>
+                <option value="Servicios y Oficios">Servicios y Oficios</option>
+                <option value="Agropecuario">Agropecuario</option>
+                <option value="Automotor">Automotor</option>
+                <option value="Construcción">Construcción</option>
+                <option value="Educación">Educación</option>
+                <option value="Turismo">Turismo</option>
+                <option value="Profesiones">Profesiones</option>
+                <option value="Productores">Productores</option>
+                <option value="Emprendimientos">Emprendimientos</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
             <div>
-              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Plan *</label>
+              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Plan que te interesa *</label>
               <select name="plan" value={formData.plan} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm">
-                <option value="Gratuito">Gratuito - $0/mes</option><option value="Estándar">Estándar - $X.XXX/mes</option><option value="Destacado">Destacado - $X.XXX/mes</option><option value="Patrocinado">Patrocinado - Consultar</option>
+                <option value="Gratuito">Gratuito - $0/mes</option>
+                <option value="Estándar">Estándar</option>
+                <option value="Destacado">Destacado (Más Popular)</option>
+                <option value="Patrocinado">Patrocinado - Consultar</option>
               </select>
             </div>
           </div>
@@ -112,49 +174,87 @@ function FormularioComercio({ onClose }) {
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Persona de contacto</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" name="nombre_contacto" placeholder="Nombre y apellido *" value={formData.nombre_contacto} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-              <input type="tel" name="telefono" placeholder="Teléfono *" value={formData.telefono} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-              <input type="text" name="whatsapp" placeholder="WhatsApp (solo números) *" value={formData.whatsapp} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-              <input type="email" name="email" placeholder="Email *" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Nombre y apellido *</label>
+                <input type="text" name="nombre_contacto" value={formData.nombre_contacto} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Juan Pérez" />
+              </div>
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Teléfono *</label>
+                <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: (02955) 12-3456" />
+              </div>
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">WhatsApp (solo número) *</label>
+                <input type="text" name="whatsapp" value={formData.whatsapp} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: 5492955123456" />
+              </div>
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Email *</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="tu@email.com" />
+              </div>
             </div>
           </div>
 
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Información del negocio</h3>
             <div className="space-y-4">
-              <textarea name="descripcion" placeholder="Descripción breve *" value={formData.descripcion} onChange={handleChange} required rows="2" className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" name="direccion" placeholder="Dirección" value={formData.direccion} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-                <input type="text" name="horario" placeholder="Horario" value={formData.horario} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Descripción breve *</label>
+                <textarea name="descripcion" value={formData.descripcion} onChange={handleChange} required rows="2" className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Contá en pocas palabras qué ofrecés..." />
               </div>
-              <input type="text" name="google_maps_url" placeholder="Link Google Maps (opcional)" value={formData.google_maps_url} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Dirección</label>
+                  <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Av. Libertador 123" />
+                </div>
+                <div>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Horario</label>
+                  <input type="text" name="horario" value={formData.horario} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Lun a Vie 9:00 - 18:00" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Link de Google Maps (opcional)</label>
+                  <input type="text" name="google_maps_url" value={formData.google_maps_url} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="https://maps.app.goo.gl/..." />
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">Redes sociales (opcional)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" name="instagram" placeholder="Instagram (@)" value={formData.instagram} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
-              <input type="text" name="facebook" placeholder="Facebook" value={formData.facebook} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Instagram</label>
+                <input type="text" name="instagram" value={formData.instagram} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="@tu_negocio" />
+              </div>
+              <div>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Facebook</label>
+                <input type="text" name="facebook" value={formData.facebook} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="facebook.com/tu_negocio" />
+              </div>
             </div>
           </div>
 
           <div className="border-t border-navy/10 pt-4">
             <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-3">¿Quién te recomendó?</h3>
-            <input type="text" name="recomendacion" placeholder="Nombre de la persona o comercio" value={formData.recomendacion} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" />
+            <div>
+              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Nombre de la persona o comercio</label>
+              <input type="text" name="recomendacion" value={formData.recomendacion} onChange={handleChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" placeholder="Ej: Juan Pérez / Panadería La Espiga" />
+            </div>
           </div>
 
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg font-body text-sm">{error}</div>}
-          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg font-body text-sm">{error}</div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={enviando} className="flex-1 bg-dorado text-navy py-3 rounded-lg font-body font-bold hover:bg-dorado-claro transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
               {enviando ? 'Enviando...' : 'Enviar Publicación'}
             </button>
-            <button type="button" onClick={onClose} className="px-6 py-3 border-2 border-navy/30 text-navy rounded-lg font-body font-bold hover:bg-navy/10 transition text-sm">Cancelar</button>
+            <button type="button" onClick={onClose} className="px-6 py-3 border-2 border-navy/30 text-navy rounded-lg font-body font-bold hover:bg-navy/10 transition text-sm">
+              Cancelar
+            </button>
           </div>
         </form>
       </div>
     </div>
   )
 }
+
 export default FormularioComercio
