@@ -74,9 +74,6 @@ function HomePage() {
   const negociosPatrocinados = negocios.filter(n => n.plan === 'Patrocinado').slice(0, 6)
   const negociosDestacados = negocios.filter(n => n.plan === 'Destacado')
 
-  // Un negocio es gratuito si no tiene plan o su plan es "Gratuito"
-  const esGratuito = (n) => !n.plan || n.plan === 'Gratuito'
-
   const handleCategoriaClick = (categoria) => {
     setCategoriaSeleccionada(categoria)
     setTimeout(() => {
@@ -91,7 +88,9 @@ function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleVerFicha = (id) => navigate(`/ficha/${id}`)
+  const handleVerFicha = (id) => {
+    navigate(`/ficha/${id}`)
+  }
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
@@ -138,9 +137,9 @@ function HomePage() {
       {/* ========== MÓDULO 2: HERO CON BUSCADOR ========== */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">A un pin de distancia</h1>
+          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">El directorio de Realicó</h1>
           <p className="font-body text-xl md:text-2xl mb-10 text-dorado-claro max-w-2xl mx-auto font-medium">
-            Comercios, servicios, profesiones, productores locales y emprendimientos de tu ciudad. Todo en tu bolsillo.
+            Comercios, servicios, profesiones, productores locales y emprendimientos de La Pampa.
           </p>
           <div className="max-w-3xl mx-auto bg-crema p-3 rounded-lg shadow-2xl flex flex-col md:flex-row gap-2">
             <input
@@ -150,9 +149,7 @@ function HomePage() {
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
-              Buscar
-            </button>
+            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">Buscar</button>
           </div>
         </div>
       </header>
@@ -225,7 +222,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 6: RESULTADOS (GRATUITOS SIN FICHA) ========== */}
+      {/* ========== MÓDULO 6: RESULTADOS DE BÚSQUEDA/CATEGORÍA ========== */}
       {(categoriaSeleccionada || busqueda) && (
         <section id="resultados-negocios" className="container mx-auto px-4 py-16 flex-grow">
           <div className="mb-8">
@@ -243,29 +240,34 @@ function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosFiltrados.map((n) => (
-                esGratuito(n) ? (
-                  /* TARJETA GRATUITA: solo nombre, categoría y dirección. SIN ficha, SIN clic */
-                  <div key={n.id} className="bg-white p-6 rounded-lg shadow-md border border-navy/10">
-                    <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
-                    <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
-                    {n.direccion && <p className="font-body text-navy/70 text-sm">📍 {n.direccion}</p>}
-                  </div>
-                ) : (
-                  /* TARJETA PAGA: clickeable con ficha completa */
-                  <div key={n.id} onClick={() => handleVerFicha(n.id)} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-2 cursor-pointer ${
-                    n.plan === 'Patrocinado' ? 'border-navy' : 'border-dorado'
-                  }`}>
+                <div key={n.id} onClick={() => handleVerFicha(n.id)} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-2 cursor-pointer ${
+                  n.plan === 'Patrocinado' ? 'border-navy' :
+                  n.plan === 'Destacado' ? 'border-dorado' :
+                  'border-navy/10'
+                }`}>
+                  {n.plan && n.plan !== 'Gratuito' && (
                     <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
-                      n.plan === 'Patrocinado' ? 'bg-navy text-crema' : 'bg-dorado text-navy'
+                      n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
+                      n.plan === 'Destacado' ? 'bg-dorado text-navy' :
+                      'bg-crema text-navy'
                     }`}>{n.plan}</span>
-                    {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-40 object-cover rounded-lg mb-4" />}
-                    <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
-                    <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
-                    {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
-                    <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
-                    <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">Ver ficha completa →</button>
-                  </div>
-                )
+                  )}
+                  {/* ✅ FOTO REDONDA TIPO AVATAR */}
+                  {n.foto_portada && (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={n.foto_portada}
+                        alt={n.nombre}
+                        className="w-24 h-24 object-cover rounded-full border-2 border-dorado shadow-md"
+                      />
+                    </div>
+                  )}
+                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide text-center">{n.nombre}</h3>
+                  <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide text-center">{n.categoria}</p>
+                  {n.tipo && <p className="font-body text-navy/60 text-xs mb-3 text-center">{n.tipo}</p>}
+                  <p className="font-body text-navy/70 text-base mb-4 line-clamp-2 text-center">{n.descripcion}</p>
+                  <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">Ver ficha completa →</button>
+                </div>
               ))}
             </div>
           )}
@@ -285,10 +287,9 @@ function HomePage() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Nombre y categoría</li>
-                  <li className="flex items-center">✓ Dirección</li>
-                  <li className="flex items-center text-navy/40">✗ Ficha detallada</li>
-                  <li className="flex items-center text-navy/40">✗ WhatsApp</li>
+                  <li>✓ Nombre y categoría</li>
+                  <li>✓ Dirección</li>
+                  <li>✓ Teléfono (texto)</li>
                 </ul>
                 <button className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-default text-sm">Actual</button>
               </div>
@@ -296,10 +297,10 @@ function HomePage() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Ficha completa</li>
-                  <li className="flex items-center">✓ Botón WhatsApp</li>
-                  <li className="flex items-center">✓ 1 foto de portada</li>
-                  <li className="flex items-center">✓ Horario</li>
+                  <li>✓ Todo lo del Gratuito</li>
+                  <li>✓ Botón WhatsApp</li>
+                  <li>✓ 1 foto de portada</li>
+                  <li>✓ Horario</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
@@ -308,11 +309,11 @@ function HomePage() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
                 <p className="font-body text-navy/80 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Todo lo del Estándar</li>
-                  <li className="flex items-center">✓ Galería (5 fotos)</li>
-                  <li className="flex items-center">✓ Redes sociales</li>
-                  <li className="flex items-center">✓ Google Maps</li>
-                  <li className="flex items-center">✓ Badge "Destacado"</li>
+                  <li>✓ Todo lo del Estándar</li>
+                  <li>✓ Galería (5 fotos)</li>
+                  <li>✓ Redes sociales</li>
+                  <li>✓ Google Maps</li>
+                  <li>✓ Badge "Destacado"</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
               </div>
@@ -320,11 +321,11 @@ function HomePage() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">Consultar</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li className="flex items-center">✓ Todo lo del Destacado</li>
-                  <li className="flex items-center">✓ Galería + video</li>
-                  <li className="flex items-center">✓ Banner en home</li>
-                  <li className="flex items-center">✓ Logo en header</li>
-                  <li className="flex items-center">✓ Botón "Cómo llegar"</li>
+                  <li>✓ Todo lo del Destacado</li>
+                  <li>✓ Galería + video</li>
+                  <li>✓ Banner en home</li>
+                  <li>✓ Logo en header</li>
+                  <li>✓ Botón "Cómo llegar"</li>
                 </ul>
                 <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Contactar</button>
               </div>
@@ -339,9 +340,9 @@ function HomePage() {
           <div className="container mx-auto px-4 text-center">
             <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">¿Tenés algo que ofrecer?</h2>
             <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">
-              Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de tu ciudad.
+              Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.
             </p>
-            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">
               ¡Quiero Publicar!
             </button>
             <p className="font-body text-navy/60 text-sm mt-4">Es gratis y toma menos de 2 minutos</p>
@@ -355,7 +356,7 @@ function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">MiPin</h3>
-              <p className="font-body text-crema/60 text-sm">A un pin de distancia. El directorio de comercios, servicios, profesiones, productores y emprendimientos de tu ciudad.</p>
+              <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
             </div>
             <div>
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Enlaces Rápidos</h3>

@@ -8,11 +8,21 @@ function FichaDetalle() {
   const [negocio, setNegocio] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
-  const [fotoLightbox, setFotoLightbox] = useState(null)
+  const [fotoPrincipal, setFotoPrincipal] = useState(null)
+  const [fotoLightbox, setFotoLightbox] = useState(null) // 🆕 Visor a pantalla completa
 
   useEffect(() => {
     cargarFicha()
   }, [id])
+
+  // 🆕 Cerrar el visor con la tecla Esc
+  useEffect(() => {
+    const manejarTecla = (e) => {
+      if (e.key === 'Escape') setFotoLightbox(null)
+    }
+    window.addEventListener('keydown', manejarTecla)
+    return () => window.removeEventListener('keydown', manejarTecla)
+  }, [])
 
   const cargarFicha = async () => {
     try {
@@ -24,6 +34,7 @@ function FichaDetalle() {
         .single()
       if (error) throw error
       setNegocio(data)
+      setFotoPrincipal(data.foto_portada)
       await supabase
         .from('negocios')
         .update({ vistas: (data.vistas || 0) + 1 })
@@ -77,9 +88,10 @@ function FichaDetalle() {
   }
 
   const redes = getRedes()
-  // ✅ SOLO las 3 fotos de la galería (NO incluye la foto de perfil)
-  const galeria = getGaleria().slice(0, 3)
+  const galeria = getGaleria()
+  const todasLasFotos = [negocio.foto_portada, ...galeria].filter(Boolean)
   const plan = negocio.plan || 'Gratuito'
+  const esGratuito = plan === 'Gratuito'
   const esEstándar = plan === 'Estándar'
   const esDestacado = plan === 'Destacado'
   const esPatrocinado = plan === 'Patrocinado'
@@ -114,16 +126,20 @@ function FichaDetalle() {
     return null
   }
 
+  // ¿El patrocinado tiene banner para usar de fondo?
+  const bannerDeFondo = esPatrocinado && negocio.banner_url
+
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* ========== VISOR DE FOTO (LIGHTBOX) ========== */}
+      {/* 🆕 VISOR A PANTALLA COMPLETA CON EFECTO LUPA */}
       {fotoLightbox && (
         <div
-          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setFotoLightbox(null)}
         >
+          <style>{`@keyframes zoomLupa { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
           <button
-            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full text-2xl font-bold transition"
+            className="absolute top-4 right-4 w-11 h-11 bg-white/10 hover:bg-white/20 text-white rounded-full text-2xl font-bold transition"
             aria-label="Cerrar"
           >
             ×
@@ -132,9 +148,11 @@ function FichaDetalle() {
             src={fotoLightbox}
             alt={negocio.nombre}
             className="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+            style={{ animation: 'zoomLupa 0.25s ease-out' }}
+            onClick={(e) => e.stopPropagation()}
           />
           <p className="absolute bottom-4 left-0 right-0 text-center text-crema/60 text-sm font-body">
-            Tocá afuera para cerrar
+            Tocá afuera o presioná Esc para cerrar
           </p>
         </div>
       )}
@@ -151,31 +169,36 @@ function FichaDetalle() {
         </div>
       </nav>
 
-      {/* BANNER PATROCINADO */}
-      {esPatrocinado && negocio.banner_url && (
-        <div className="w-full h-48 md:h-64 overflow-hidden">
-          <img src={negocio.banner_url} alt={`Banner ${negocio.nombre}`} className="w-full h-full object-cover" />
-        </div>
-      )}
+      {/* ========== HERO (NUEVO ENCABEZADO) ========== */}
+      <header className={`relative overflow-hidden text-white py-12 ${bannerDeFondo ? '' : 'bg-gradient-to-b from-navy to-navy-dark'}`}>
+        {/* FONDO: banner propio detrás (solo Patrocinado) */}
+        {bannerDeFondo && (
+          <>
+            <img
+              src={negocio.banner_url}
+              alt={`Banner ${negocio.nombre}`}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Capa oscura para que el texto se lea bien */}
+            <div className="absolute inset-0 bg-gradient-to-b from-navy/80 to-navy-dark/90" />
+          </>
+        )}
 
-      {/* HERO */}
-      <header className={`bg-gradient-to-b from-navy to-navy-dark text-white py-12 ${esPatrocinado ? 'pt-8' : ''}`}>
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 relative">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* FOTO DE PERFIL ESTÁTICA (nunca cambia) */}
+            {/* IMAGEN REDONDA TIPO AVATAR (estática, con lupa al click) */}
             {tieneFoto && (
               <div className="flex-shrink-0 mx-auto md:mx-0">
                 {negocio.foto_portada ? (
-                  <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 ${
-                    esPatrocinado ? 'border-crema shadow-2xl' :
-                    esDestacado ? 'border-dorado shadow-xl' :
-                    'border-white/30 shadow-lg'
-                  }`}>
-                    <img
-                      src={negocio.foto_portada}
-                      alt={negocio.nombre}
-                      className="w-full h-full object-cover"
-                    />
+                  <div
+                    className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 bg-white cursor-zoom-in ${
+                      esPatrocinado ? 'border-crema shadow-2xl' :
+                      esDestacado ? 'border-dorado shadow-xl' :
+                      'border-white/30 shadow-lg'
+                    }`}
+                    onClick={() => setFotoLightbox(negocio.foto_portada)}
+                  >
+                    <img src={negocio.foto_portada} alt={negocio.nombre} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className={`w-40 h-40 md:w-48 md:h-48 rounded-full flex items-center justify-center border-4 ${
@@ -188,7 +211,9 @@ function FichaDetalle() {
                 )}
               </div>
             )}
+
             <div className={`flex-1 ${!tieneFoto ? 'w-full' : ''} text-center md:text-left`}>
+              {/* LÍNEA SUPERIOR: Badge + Tipo + Rubro + Vistas */}
               <div className="flex flex-wrap items-center gap-3 mb-3 justify-center md:justify-start">
                 {(esDestacado || esPatrocinado) && (
                   <span className={`font-label px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colors.badge}`}>
@@ -196,14 +221,26 @@ function FichaDetalle() {
                   </span>
                 )}
                 <span className="font-label text-dorado-claro text-sm uppercase tracking-wide">{negocio.tipo}</span>
+                {/* ✅ RUBRO SUBE ARRIBA (todos los planes excepto Gratuito) */}
+                {!esGratuito && negocio.categoria && (
+                  <span className="font-label text-dorado-claro text-sm uppercase tracking-wide">{negocio.categoria}</span>
+                )}
                 {negocio.vistas > 0 && (
                   <span className="font-body text-crema/60 text-xs">👁 {negocio.vistas} vistas</span>
                 )}
               </div>
+
               <h1 className="font-display text-4xl md:text-6xl tracking-wide mb-3">{negocio.nombre}</h1>
-              <p className="font-label text-dorado-claro text-lg uppercase tracking-wide mb-4">{negocio.categoria}</p>
+
+              {/* Solo Gratuito mantiene el rubro abajo (los pagos lo tienen arriba) */}
+              {esGratuito && (
+                <p className="font-label text-dorado-claro text-lg uppercase tracking-wide mb-4">{negocio.categoria}</p>
+              )}
+
               <p className="font-body text-crema/90 text-lg leading-relaxed">{negocio.descripcion}</p>
-              {negocio.direccion && (
+
+              {/* ✅ La dirección YA NO va acá en planes pagos (está abajo en Ubicación) */}
+              {esGratuito && negocio.direccion && (
                 <p className="font-body text-crema/80 mt-4 flex items-center gap-2 justify-center md:justify-start">
                   <span>📍</span> {negocio.direccion}
                 </p>
@@ -218,17 +255,16 @@ function FichaDetalle() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* COLUMNA IZQUIERDA */}
           <div className="lg:col-span-2 space-y-8">
-            {/* ✅ GALERÍA: solo las 3 fotos de galería (sin la de perfil) */}
-            {tieneGalería && galeria.length > 0 && (
+            {tieneGalería && todasLasFotos.length > 1 && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Galería</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {galeria.map((foto, idx) => (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {todasLasFotos.map((foto, idx) => (
                     <img
                       key={idx}
                       src={foto}
                       alt={`${negocio.nombre} ${idx + 1}`}
-                      className="w-full aspect-square object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition"
+                      className="w-full h-48 object-cover rounded-lg cursor-zoom-in hover:opacity-90 transition"
                       onClick={() => setFotoLightbox(foto)}
                     />
                   ))}
@@ -261,7 +297,9 @@ function FichaDetalle() {
                 {negocio.telefono && (
                   <div className="border-b border-navy/10 pb-4">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Teléfono</p>
-                    <p className="font-body text-navy text-lg font-semibold mb-3">{negocio.telefono}</p>
+                    <a href={`tel:${negocio.telefono}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition block mb-3">
+                      {negocio.telefono}
+                    </a>
                     {tieneWhatsApp && negocio.whatsapp && (
                       <a
                         href={`https://wa.me/${negocio.whatsapp}`}
@@ -277,7 +315,9 @@ function FichaDetalle() {
                 {negocio.email && (
                   <div>
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Email</p>
-                    <p className="font-body text-navy text-lg font-semibold break-all mb-3">{negocio.email}</p>
+                    <a href={`mailto:${negocio.email}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition break-all block mb-3">
+                      {negocio.email}
+                    </a>
                     <a
                       href={`mailto:${negocio.email}?subject=Consulta desde MiPin - ${negocio.nombre}`}
                       className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition"
@@ -314,29 +354,26 @@ function FichaDetalle() {
                     />
                   </div>
                 )}
-                {getMapsUrl() && (
-                  <a
-                    href={getMapsUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition"
-                  >
-                    📍 Ver ubicación en Google Maps
-                  </a>
-                )}
+                <a
+                  href={getMapsUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition"
+                >
+                  📍 Ver ubicación en Google Maps
+                </a>
                 {tieneRedes && (redes.instagram || redes.facebook) && (
                   <div className="border-t border-navy/10 pt-4 mt-6">
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Seguinos en</p>
-                    <div className="space-y-2">
+                    <div className="flex gap-3">
                       {redes.instagram && (
                         <a
                           href={`https://instagram.com/${redes.instagram.replace('@', '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-between bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-3 rounded-lg font-body font-bold text-sm hover:opacity-90 transition"
+                          className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:opacity-90 transition"
                         >
-                          <span>📷 Instagram</span>
-                          <span className="font-normal">@{redes.instagram.replace('@', '')}</span>
+                          Instagram
                         </a>
                       )}
                       {redes.facebook && (
@@ -344,10 +381,9 @@ function FichaDetalle() {
                           href={redes.facebook.startsWith('http') ? redes.facebook : `https://facebook.com/${redes.facebook}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-between bg-blue-600 text-white py-2 px-3 rounded-lg font-body font-bold text-sm hover:bg-blue-700 transition"
+                          className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-body font-bold text-sm text-center hover:bg-blue-700 transition"
                         >
-                          <span>📘 Facebook</span>
-                          <span className="font-normal">{redes.facebook.replace('https://', '').replace('http://', '').replace('facebook.com/', '')}</span>
+                          Facebook
                         </a>
                       )}
                     </div>
@@ -355,7 +391,7 @@ function FichaDetalle() {
                 )}
               </div>
             )}
-            {plan === 'Gratuito' && (
+            {esGratuito && (
               <div className="bg-dorado/10 p-6 rounded-xl border-2 border-dorado/30">
                 <p className="font-label text-navy font-bold text-base mb-2">¿Querés más visibilidad?</p>
                 <p className="font-body text-navy/70 text-sm mb-4">Actualizá tu plan para tener WhatsApp, fotos, horario, mapa y más.</p>

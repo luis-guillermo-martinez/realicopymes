@@ -13,6 +13,7 @@ function AdminPanel({ onClose }) {
   const [mensaje, setMensaje] = useState('')
   const [subiendoPortada, setSubiendoPortada] = useState(false)
   const [subiendoGaleria, setSubiendoGaleria] = useState(false)
+  const [subiendoBanner, setSubiendoBanner] = useState(false)
   const ADMIN_PASSWORD = 'realico2026'
   const PLANES = ['Todos', 'Gratuito', 'Estándar', 'Destacado', 'Patrocinado']
 
@@ -23,10 +24,14 @@ function AdminPanel({ onClose }) {
   const cargarDatos = async () => {
     setCargando(true)
     const { data: dataPendientes } = await supabase
-      .from('negocios').select('*').eq('activo', false)
+      .from('negocios')
+      .select('*')
+      .eq('activo', false)
       .order('created_at', { ascending: false })
     const { data: dataPublicados } = await supabase
-      .from('negocios').select('*').eq('activo', true)
+      .from('negocios')
+      .select('*')
+      .eq('activo', true)
       .order('created_at', { ascending: false })
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
@@ -43,7 +48,6 @@ function AdminPanel({ onClose }) {
     }
   }
 
-  // ✅ FIX REDES: al abrir edición, desarma los JSON de redes y galería
   const abrirEdicion = (sol) => {
     let redes = {}
     try { redes = typeof sol.redes_sociales === 'string' ? JSON.parse(sol.redes_sociales) : (sol.redes_sociales || {}) } catch { redes = {} }
@@ -61,7 +65,9 @@ function AdminPanel({ onClose }) {
     setEditando({ ...editando, [e.target.name]: e.target.value })
   }
 
-  // 📤 Subir archivo a Supabase Storage y devolver URL pública
+  // ✅ Límite de galería según plan
+  const maxGaleria = editando ? (editando.plan === 'Patrocinado' ? 5 : editando.plan === 'Destacado' ? 3 : 0) : 0
+
   const subirImagen = async (file, carpeta) => {
     const ext = file.name.split('.').pop()
     const nombre = `${carpeta}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
@@ -90,9 +96,9 @@ function AdminPanel({ onClose }) {
 
   const manejarSubidaGaleria = async (e) => {
     const actuales = editando.galeria || []
-    const files = Array.from(e.target.files).slice(0, 3 - actuales.length)
+    const files = Array.from(e.target.files).slice(0, maxGaleria - actuales.length)
     if (files.length === 0) {
-      setMensaje('⚠️ La galería admite 3 imágenes como máximo.')
+      setMensaje(`⚠️ La galería admite ${maxGaleria} imágenes como máximo.`)
       e.target.value = ''
       return
     }
@@ -100,13 +106,30 @@ function AdminPanel({ onClose }) {
     try {
       const urls = []
       for (const f of files) urls.push(await subirImagen(f, 'galerias'))
-      setEditando(prev => ({ ...prev, galeria: [...(prev.galeria || []), ...urls].slice(0, 3) }))
+      setEditando(prev => ({ ...prev, galeria: [...(prev.galeria || []), ...urls].slice(0, maxGaleria) }))
       setMensaje('✅ Imágenes de galería subidas.')
     } catch (err) {
       console.error(err)
       setMensaje('❌ Error al subir imágenes: ' + err.message)
     } finally {
       setSubiendoGaleria(false)
+      e.target.value = ''
+    }
+  }
+
+  const manejarSubidaBanner = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setSubiendoBanner(true)
+    try {
+      const url = await subirImagen(file, 'banners')
+      setEditando(prev => ({ ...prev, banner_url: url }))
+      setMensaje('✅ Banner subido.')
+    } catch (err) {
+      console.error(err)
+      setMensaje('❌ Error al subir el banner: ' + err.message)
+    } finally {
+      setSubiendoBanner(false)
       e.target.value = ''
     }
   }
@@ -119,7 +142,10 @@ function AdminPanel({ onClose }) {
     if (!window.confirm(`¿Guardar cambios y ${editando.activo ? 'actualizar' : 'aprobar y publicar'} a "${editando.nombre}"?`)) return
     setMensaje('Procesando...')
     try {
-      const redes = JSON.stringify({ instagram: editando.instagram || '', facebook: editando.facebook || '' })
+      const redes = JSON.stringify({
+        instagram: editando.instagram || '',
+        facebook: editando.facebook || ''
+      })
       const { error } = await supabase
         .from('negocios')
         .update({
@@ -135,6 +161,8 @@ function AdminPanel({ onClose }) {
           plan: editando.plan,
           foto_portada: editando.foto_portada,
           galeria: JSON.stringify(editando.galeria || []),
+          video_url: editando.video_url || null,
+          banner_url: editando.banner_url || null,
           google_maps_url: editando.google_maps_url,
           redes_sociales: redes,
           activo: true,
@@ -173,9 +201,13 @@ function AdminPanel({ onClose }) {
     if (!window.confirm(`¿${accion} a "${negocio.nombre}"?\n\n${nuevoEstado ? 'Desaparecerá de la web hasta que lo reactives.' : 'Volverá a aparecer en la web.'}`)) return
     setMensaje('Procesando...')
     try {
-      const { error } = await supabase.from('negocios').update({ suspendido: nuevoEstado }).eq('id', negocio.id)
+      const { error } = await supabase
+        .from('negocios')
+        .update({ suspendido: nuevoEstado })
+        .eq('id', negocio.id)
       if (error) throw error
       setMensaje(`✅ "${negocio.nombre}" ${nuevoEstado ? 'suspendido' : 'reactivado'}.`)
+      setEditando(null)
       setTimeout(() => { setMensaje(''); cargarDatos() }, 2500)
     } catch (error) {
       setMensaje('❌ Error: ' + error.message)
@@ -298,25 +330,41 @@ function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* 📷 MULTIMEDIA: SUBIDA DE ARCHIVOS */}
+            {/* MULTIMEDIA Y REDES */}
             <div className="border-t border-navy/10 pt-6">
-              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia (subir archivos, no links)</h3>
+              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia, Ubicación y Redes</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* PORTADA */}
                 <div>
-                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">Foto de portada</label>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Foto de Portada</label>
                   {editando.foto_portada && (
-                    <img src={editando.foto_portada} alt="Portada" className="w-full h-32 object-cover rounded-lg mb-2" />
+                    <img src={editando.foto_portada} alt="Portada" className="w-full h-24 object-cover rounded-lg mb-2" />
                   )}
                   <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoPortada ? 'bg-gray-300 text-gray-500' : 'bg-dorado text-navy hover:bg-dorado-claro'}`}>
                     {subiendoPortada ? '⏳ Subiendo...' : '📷 Subir foto de portada'}
                     <input type="file" accept="image/*" onChange={manejarSubidaPortada} className="hidden" disabled={subiendoPortada} />
                   </label>
                 </div>
-                {/* GALERÍA (máx 3) */}
                 <div>
-                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">Galería (máx. 3 imágenes)</label>
-                  <div className="grid grid-cols-3 gap-2 mb-2">
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Link de Google Maps</label>
+                  <input name="google_maps_url" value={editando.google_maps_url || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="https://maps.app.goo.gl/..." />
+                </div>
+                <div>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Instagram (sin @)</label>
+                  <input name="instagram" value={editando.instagram || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
+                </div>
+                <div>
+                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Facebook (URL o usuario)</label>
+                  <input name="facebook" value={editando.facebook || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
+                </div>
+              </div>
+
+              {/* GALERÍA DINÁMICA SEGÚN PLAN */}
+              {maxGaleria > 0 ? (
+                <div className="mt-6">
+                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">
+                    Galería ({(editando.galeria || []).length}/{maxGaleria} imágenes)
+                  </label>
+                  <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-2">
                     {(editando.galeria || []).map((foto, idx) => (
                       <div key={idx} className="relative">
                         <img src={foto} alt={`Galería ${idx + 1}`} className="w-full aspect-square object-cover rounded-lg" />
@@ -328,33 +376,36 @@ function AdminPanel({ onClose }) {
                       </div>
                     ))}
                   </div>
-                  {(editando.galeria || []).length < 3 && (
+                  {(editando.galeria || []).length < maxGaleria && (
                     <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoGaleria ? 'bg-gray-300 text-gray-500' : 'bg-navy text-crema hover:bg-navy-dark'}`}>
-                      {subiendoGaleria ? '⏳ Subiendo...' : `📷 Subir imágenes (${(editando.galeria || []).length}/3)`}
+                      {subiendoGaleria ? '⏳ Subiendo...' : `📷 Subir imágenes (${(editando.galeria || []).length}/${maxGaleria})`}
                       <input type="file" accept="image/*" multiple onChange={manejarSubidaGaleria} className="hidden" disabled={subiendoGaleria} />
                     </label>
                   )}
                 </div>
-              </div>
-            </div>
+              ) : (
+                <p className="mt-4 font-body text-navy/50 text-xs">📷 La galería de fotos está disponible en los planes Destacado (3 fotos) y Patrocinado (5 fotos).</p>
+              )}
 
-            {/*  UBICACIÓN Y REDES */}
-            <div className="border-t border-navy/10 pt-6">
-              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Ubicación y Redes</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Link de Google Maps</label>
-                  <input name="google_maps_url" value={editando.google_maps_url || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="https://maps.app.goo.gl/..." />
+              {/* VIDEO Y BANNER (solo Patrocinado) */}
+              {editando.plan === 'Patrocinado' && (
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Video (YouTube)</label>
+                    <input name="video_url" value={editando.video_url || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="https://youtube.com/watch?v=..." />
+                  </div>
+                  <div>
+                    <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Banner propio</label>
+                    {editando.banner_url && (
+                      <img src={editando.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-lg mb-2" />
+                    )}
+                    <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoBanner ? 'bg-gray-300 text-gray-500' : 'bg-navy text-crema hover:bg-navy-dark'}`}>
+                      {subiendoBanner ? '⏳ Subiendo...' : '🖼️ Subir banner'}
+                      <input type="file" accept="image/*" onChange={manejarSubidaBanner} className="hidden" disabled={subiendoBanner} />
+                    </label>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Instagram (sin @)</label>
-                  <input name="instagram" value={editando.instagram || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="tu_negocio" />
-                </div>
-                <div>
-                  <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Facebook (URL o usuario)</label>
-                  <input name="facebook" value={editando.facebook || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="facebook.com/tu_negocio" />
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="flex gap-4 pt-4 border-t border-navy/10">
@@ -384,9 +435,30 @@ function AdminPanel({ onClose }) {
           </div>
         )}
         <div className="flex gap-2 mb-6">
-          <button onClick={() => setVistaActual('dashboard')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>📊 Dashboard</button>
-          <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
-          <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
+          <button
+            onClick={() => setVistaActual('dashboard')}
+            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
+              vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
+            }`}
+          >
+            📊 Dashboard
+          </button>
+          <button
+            onClick={() => setVistaActual('pendientes')}
+            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
+              vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
+            }`}
+          >
+            🕒 Pendientes ({pendientes.length})
+          </button>
+          <button
+            onClick={() => setVistaActual('publicados')}
+            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
+              vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
+            }`}
+          >
+            ✅ Publicados ({publicados.length})
+          </button>
         </div>
 
         {vistaActual === 'dashboard' && (
@@ -446,7 +518,9 @@ function AdminPanel({ onClose }) {
                         <p className="font-body font-bold text-navy">{n.nombre}</p>
                         <p className="font-body text-xs text-navy/60">{n.tipo} • {n.plan}</p>
                       </div>
-                      <span className={`font-label text-xs px-2 py-1 rounded ${n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'}`}>
+                      <span className={`font-label text-xs px-2 py-1 rounded ${
+                        n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'
+                      }`}>
                         {n.activo ? (n.suspendido ? 'Suspendido' : 'Activo') : 'Pendiente'}
                       </span>
                     </div>
@@ -462,7 +536,13 @@ function AdminPanel({ onClose }) {
               <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
               <div className="flex flex-wrap gap-2">
                 {PLANES.map(plan => (
-                  <button key={plan} onClick={() => setFiltroPlan(plan)} className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${filtroPlan === plan ? 'bg-navy text-crema' : 'bg-crema text-navy hover:bg-navy/10'}`}>
+                  <button
+                    key={plan}
+                    onClick={() => setFiltroPlan(plan)}
+                    className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${
+                      filtroPlan === plan ? 'bg-navy text-crema' : 'bg-crema text-navy hover:bg-navy/10'
+                    }`}
+                  >
                     {plan}
                   </button>
                 ))}
