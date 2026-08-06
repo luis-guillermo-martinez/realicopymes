@@ -17,7 +17,9 @@ function HomePage() {
   const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => { cargarNegocios() }, [])
+  useEffect(() => {
+    cargarNegocios()
+  }, [])
 
   const cargarNegocios = async () => {
     try {
@@ -74,6 +76,11 @@ function HomePage() {
   const negociosPatrocinados = negocios.filter(n => n.plan === 'Patrocinado').slice(0, 6)
   const negociosDestacados = negocios.filter(n => n.plan === 'Destacado')
 
+  const bordeFoto = (n) =>
+    n.plan === 'Patrocinado' ? 'border-navy' :
+    n.plan === 'Destacado' ? 'border-dorado' :
+    'border-navy/20'
+
   const handleCategoriaClick = (categoria) => {
     setCategoriaSeleccionada(categoria)
     setTimeout(() => {
@@ -94,7 +101,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* ========== MÓDULO 1: HEADER ========== */}
+      {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
@@ -134,12 +141,12 @@ function HomePage() {
         </div>
       </nav>
 
-      {/* ========== MÓDULO 2: HERO CON BUSCADOR ========== */}
+      {/* HERO */}
       <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">El directorio de Realicó</h1>
+          <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">A un pin de distancia</h1>
           <p className="font-body text-xl md:text-2xl mb-10 text-dorado-claro max-w-2xl mx-auto font-medium">
-            Comercios, servicios, profesiones, productores locales y emprendimientos de La Pampa.
+            Conectamos a la comunidad con los mejores servicios y profesionales locales de La Pampa.
           </p>
           <div className="max-w-3xl mx-auto bg-crema p-3 rounded-lg shadow-2xl flex flex-col md:flex-row gap-2">
             <input
@@ -149,12 +156,14 @@ function HomePage() {
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">Buscar</button>
+            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
+              Buscar
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ========== MÓDULO 3: PLAN PATROCINADOR (6 máx) ========== */}
+      {/* PATROCINADORES */}
       {negociosPatrocinados.length > 0 && (
         <section className="bg-dorado/10 py-16 border-b border-dorado/20">
           <div className="container mx-auto px-4">
@@ -167,7 +176,12 @@ function HomePage() {
               {negociosPatrocinados.map((n) => (
                 <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
-                  {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                  {/* ✅ FOTO REDONDA */}
+                  {n.foto_portada && (
+                    <div className="flex justify-center mb-4">
+                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
+                    </div>
+                  )}
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
@@ -179,7 +193,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 4: EXPLORAR POR CATEGORÍAS ========== */}
+      {/* CATEGORÍAS */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="categorias" className="container mx-auto px-4 py-16">
           <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
@@ -197,7 +211,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 5: PLAN DESTACADOS ========== */}
+      {/* DESTACADOS */}
       {!categoriaSeleccionada && !busqueda && negociosDestacados.length > 0 && (
         <section className="bg-papel py-16 border-t border-dorado/30">
           <div className="container mx-auto px-4">
@@ -210,7 +224,12 @@ function HomePage() {
               {negociosDestacados.map((n) => (
                 <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
-                  {n.foto_portada && <img src={n.foto_portada} alt={n.nombre} className="w-full h-48 object-cover rounded-lg mb-4" />}
+                  {/* ✅ FOTO REDONDA */}
+                  {n.foto_portada && (
+                    <div className="flex justify-center mb-4">
+                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
+                    </div>
+                  )}
                   <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                   <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
                   <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
@@ -222,7 +241,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 6: RESULTADOS DE BÚSQUEDA/CATEGORÍA ========== */}
+      {/* RESULTADOS */}
       {(categoriaSeleccionada || busqueda) && (
         <section id="resultados-negocios" className="container mx-auto px-4 py-16 flex-grow">
           <div className="mb-8">
@@ -252,20 +271,16 @@ function HomePage() {
                       'bg-crema text-navy'
                     }`}>{n.plan}</span>
                   )}
-                  {/* ✅ FOTO REDONDA TIPO AVATAR */}
+                  {/* ✅ FOTO REDONDA */}
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
-                      <img
-                        src={n.foto_portada}
-                        alt={n.nombre}
-                        className="w-24 h-24 object-cover rounded-full border-2 border-dorado shadow-md"
-                      />
+                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
                     </div>
                   )}
-                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide text-center">{n.nombre}</h3>
-                  <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide text-center">{n.categoria}</p>
-                  {n.tipo && <p className="font-body text-navy/60 text-xs mb-3 text-center">{n.tipo}</p>}
-                  <p className="font-body text-navy/70 text-base mb-4 line-clamp-2 text-center">{n.descripcion}</p>
+                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
+                  <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
+                  {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
+                  <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
                   <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">Ver ficha completa →</button>
                 </div>
               ))}
@@ -274,7 +289,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 7: PLANES (4 TARJETAS) ========== */}
+      {/* PLANES */}
       {!categoriaSeleccionada && !busqueda && (
         <section id="planes" className="bg-navy text-white py-16">
           <div className="container mx-auto px-4">
@@ -310,7 +325,7 @@ function HomePage() {
                 <p className="font-body text-navy/80 mb-4 font-semibold">$X.XXX/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li>✓ Todo lo del Estándar</li>
-                  <li>✓ Galería (5 fotos)</li>
+                  <li>✓ Galería (3 fotos)</li>
                   <li>✓ Redes sociales</li>
                   <li>✓ Google Maps</li>
                   <li>✓ Badge "Destacado"</li>
@@ -334,7 +349,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 8: CTA "PUBLICAR" ========== */}
+      {/* CTA */}
       {!categoriaSeleccionada && !busqueda && (
         <section className="bg-dorado py-16">
           <div className="container mx-auto px-4 text-center">
@@ -350,7 +365,7 @@ function HomePage() {
         </section>
       )}
 
-      {/* ========== MÓDULO 9: FOOTER ========== */}
+      {/* FOOTER */}
       <footer className="bg-navy-dark text-crema/80 py-12 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
