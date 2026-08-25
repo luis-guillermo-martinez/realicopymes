@@ -28,14 +28,13 @@ function FormularioComercio({ onClose }) {
   }
 
   const enviarTelegram = async (datos) => {
-    // ⚠️ REEMPLAZÁ CON TUS CREDENCIALES REALES DE TELEGRAM
     const token = '8148372070:AAGcVESfbNhZuXAKss2v9lnOXa6_qyj90z4'
     const chatId = '6436917492'
     const mensaje = `
 📋 *NUEVA PUBLICACIÓN - MiPin*
 🏪 *Negocio:* ${datos.nombre}
 📂 *Tipo:* ${datos.tipo}
-📁 *Categoría:* ${datos.categoria}
+📁 *Categorías:* ${datos.categoria}
 👤 *Contacto:* ${datos.nombre_contacto}
 📞 *Teléfono:* ${datos.telefono}
 📱 *WhatsApp:* ${datos.whatsapp}
@@ -64,15 +63,21 @@ function FormularioComercio({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Validar y limpiar categorías (máximo 3)
+    const categoriasArray = formData.categoria.split(',').map(c => c.trim()).filter(c => c !== '').slice(0, 3)
+    if (categoriasArray.length === 0) {
+      setError('Debes ingresar al menos 1 categoría.')
+      return
+    }
+    
     setEnviando(true)
     setError('')
     try {
-      // ⚠️ CLAVE: facebook e instagram NO son columnas sueltas.
-      // Van DENTRO de "redes_sociales" como JSON.
       const datosParaDB = {
         nombre: formData.nombre,
         tipo: formData.tipo,
-        categoria: formData.categoria,
+        categoria: categoriasArray.join(', '), // Guardamos limpio: "Cat1, Cat2, Cat3"
         nombre_contacto: formData.nombre_contacto,
         telefono: formData.telefono,
         whatsapp: formData.whatsapp,
@@ -110,9 +115,7 @@ function FormularioComercio({ onClose }) {
         <div className="bg-white rounded-xl p-8 max-w-md w-full text-center shadow-2xl">
           <div className="text-oliva text-6xl mb-4">✓</div>
           <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">¡Publicación Enviada!</h2>
-          <p className="font-body text-navy/70 mb-6">
-            Revisaremos tu publicación y te contactaremos en las próximas 48 horas.
-          </p>
+          <p className="font-body text-navy/70 mb-6">Revisaremos tu publicación y te contactaremos en las próximas 48 horas.</p>
           <button onClick={onClose} className="bg-navy text-crema px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">Cerrar</button>
         </div>
       </div>
@@ -143,22 +146,19 @@ function FormularioComercio({ onClose }) {
               </select>
             </div>
             <div>
-              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categoría *</label>
-              <select name="categoria" value={formData.categoria} onChange={handleChange} required className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm">
-                <option value="">Seleccionar...</option>
-                <option value="Gastronomía">Gastronomía</option>
-                <option value="Salud y Farmacias">Salud y Farmacias</option>
-                <option value="Servicios y Oficios">Servicios y Oficios</option>
-                <option value="Agropecuario">Agropecuario</option>
-                <option value="Automotor">Automotor</option>
-                <option value="Construcción">Construcción</option>
-                <option value="Educación">Educación</option>
-                <option value="Turismo">Turismo</option>
-                <option value="Profesiones">Profesiones</option>
-                <option value="Productores">Productores</option>
-                <option value="Emprendimientos">Emprendimientos</option>
-                <option value="Otro">Otro</option>
-              </select>
+              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categorías (máx 3, separadas por coma) *</label>
+              <input 
+                type="text" 
+                name="categoria" 
+                value={formData.categoria} 
+                onChange={handleChange} 
+                required 
+                className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-dorado bg-white font-body text-sm" 
+                placeholder="Ej: Gastronomía, Delivery, Cafetería" 
+              />
+              <p className="text-xs text-navy/50 mt-1">
+                {formData.categoria.split(',').filter(c => c.trim() !== '').length}/3 categorías
+              </p>
             </div>
             <div>
               <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Plan que te interesa *</label>

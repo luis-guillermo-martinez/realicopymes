@@ -67,12 +67,19 @@ function HomePage() {
       )
     }
     if (categoriaSeleccionada) {
-      resultados = resultados.filter(n => n.categoria === categoriaSeleccionada)
+      // Filtrar si la categoría seleccionada está dentro de las categorías del negocio (separadas por coma)
+      resultados = resultados.filter(n => {
+        const cats = n.categoria ? n.categoria.split(',').map(c => c.trim()) : []
+        return cats.includes(categoriaSeleccionada)
+      })
     }
     setNegociosFiltrados(ordenarPorPlan(resultados))
   }, [busqueda, categoriaSeleccionada, negocios])
 
-  const categorias = [...new Set(negocios.map(n => n.categoria))]
+  // Extraer todas las categorías únicas de todos los negocios
+  const todasLasCategorias = negocios.flatMap(n => n.categoria ? n.categoria.split(',').map(c => c.trim()) : [])
+  const categorias = [...new Set(todasLasCategorias)].filter(c => c !== '')
+
   const negociosPatrocinados = negocios.filter(n => n.plan === 'Patrocinado').slice(0, 6)
   const negociosDestacados = negocios.filter(n => n.plan === 'Destacado')
 
@@ -176,7 +183,6 @@ function HomePage() {
               {negociosPatrocinados.map((n) => (
                 <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
-                  {/* ✅ FOTO REDONDA */}
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
                       <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
@@ -224,7 +230,6 @@ function HomePage() {
               {negociosDestacados.map((n) => (
                 <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
-                  {/* ✅ FOTO REDONDA */}
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
                       <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
@@ -271,7 +276,6 @@ function HomePage() {
                       'bg-crema text-navy'
                     }`}>{n.plan}</span>
                   )}
-                  {/* ✅ FOTO REDONDA */}
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
                       <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
@@ -302,7 +306,7 @@ function HomePage() {
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
                 <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li>✓ Nombre y categoría</li>
+                  <li>✓ Nombre y categorías</li>
                   <li>✓ Dirección</li>
                   <li>✓ Teléfono (texto)</li>
                 </ul>

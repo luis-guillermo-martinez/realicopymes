@@ -23,16 +23,8 @@ function AdminPanel({ onClose }) {
 
   const cargarDatos = async () => {
     setCargando(true)
-    const { data: dataPendientes } = await supabase
-      .from('negocios')
-      .select('*')
-      .eq('activo', false)
-      .order('created_at', { ascending: false })
-    const { data: dataPublicados } = await supabase
-      .from('negocios')
-      .select('*')
-      .eq('activo', true)
-      .order('created_at', { ascending: false })
+    const { data: dataPendientes } = await supabase.from('negocios').select('*').eq('activo', false).order('created_at', { ascending: false })
+    const { data: dataPublicados } = await supabase.from('negocios').select('*').eq('activo', true).order('created_at', { ascending: false })
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
     setCargando(false)
@@ -65,7 +57,6 @@ function AdminPanel({ onClose }) {
     setEditando({ ...editando, [e.target.name]: e.target.value })
   }
 
-  // ✅ Límite de galería según plan
   const maxGaleria = editando ? (editando.plan === 'Patrocinado' ? 5 : editando.plan === 'Destacado' ? 3 : 0) : 0
 
   const subirImagen = async (file, carpeta) => {
@@ -142,6 +133,10 @@ function AdminPanel({ onClose }) {
     if (!window.confirm(`¿Guardar cambios y ${editando.activo ? 'actualizar' : 'aprobar y publicar'} a "${editando.nombre}"?`)) return
     setMensaje('Procesando...')
     try {
+      // Procesar categorías: separar por coma, limpiar espacios y limitar a 3
+      const categoriasArray = editando.categoria.split(',').map(c => c.trim()).filter(c => c !== '').slice(0, 3)
+      const categoriaFinal = categoriasArray.join(', ')
+
       const redes = JSON.stringify({
         instagram: editando.instagram || '',
         facebook: editando.facebook || ''
@@ -151,7 +146,7 @@ function AdminPanel({ onClose }) {
         .update({
           nombre: editando.nombre,
           tipo: editando.tipo,
-          categoria: editando.categoria,
+          categoria: categoriaFinal, // <-- Guardamos la versión limpia
           descripcion: editando.descripcion,
           direccion: editando.direccion,
           telefono: editando.telefono,
@@ -201,10 +196,7 @@ function AdminPanel({ onClose }) {
     if (!window.confirm(`¿${accion} a "${negocio.nombre}"?\n\n${nuevoEstado ? 'Desaparecerá de la web hasta que lo reactives.' : 'Volverá a aparecer en la web.'}`)) return
     setMensaje('Procesando...')
     try {
-      const { error } = await supabase
-        .from('negocios')
-        .update({ suspendido: nuevoEstado })
-        .eq('id', negocio.id)
+      const { error } = await supabase.from('negocios').update({ suspendido: nuevoEstado }).eq('id', negocio.id)
       if (error) throw error
       setMensaje(`✅ "${negocio.nombre}" ${nuevoEstado ? 'suspendido' : 'reactivado'}.`)
       setEditando(null)
@@ -236,14 +228,7 @@ function AdminPanel({ onClose }) {
         <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
           <h2 className="font-display text-2xl text-navy mb-6 text-center tracking-wide">Acceso Administrador</h2>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="password"
-              placeholder="Contraseña de administrador"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado focus:outline-none font-body"
-              autoFocus
-            />
+            <input type="password" placeholder="Contraseña de administrador" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado focus:outline-none font-body" autoFocus />
             <div className="flex gap-3">
               <button type="submit" className="flex-1 bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">Ingresar</button>
               <button type="button" onClick={onClose} className="flex-1 bg-gray-200 text-navy py-3 rounded-lg font-body font-bold hover:bg-gray-300 transition">Cancelar</button>
@@ -259,15 +244,11 @@ function AdminPanel({ onClose }) {
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="font-display text-3xl text-navy tracking-wide">
-              {editando.activo ? 'Editar Negocio Publicado' : 'Revisar y Aprobar Solicitud'}
-            </h1>
+            <h1 className="font-display text-3xl text-navy tracking-wide">{editando.activo ? 'Editar Negocio Publicado' : 'Revisar y Aprobar Solicitud'}</h1>
             <button onClick={() => setEditando(null)} className="font-body text-navy hover:text-dorado font-bold flex items-center gap-2">← Volver</button>
           </div>
           {mensaje && (
-            <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {mensaje}
-            </div>
+            <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{mensaje}</div>
           )}
           <div className="bg-white p-8 rounded-xl shadow-lg space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -286,8 +267,11 @@ function AdminPanel({ onClose }) {
                 </select>
               </div>
               <div>
-                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categoría *</label>
-                <input name="categoria" value={editando.categoria} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categorías (máx 3, separadas por coma) *</label>
+                <input name="categoria" value={editando.categoria} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="Ej: Gastronomía, Delivery" />
+                <p className="text-xs text-navy/50 mt-1">
+                  {editando.categoria.split(',').filter(c => c.trim() !== '').length}/3 categorías
+                </p>
               </div>
               <div>
                 <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Plan *</label>
@@ -330,15 +314,12 @@ function AdminPanel({ onClose }) {
               </div>
             </div>
 
-            {/* MULTIMEDIA Y REDES */}
             <div className="border-t border-navy/10 pt-6">
               <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia, Ubicación y Redes</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Foto de Portada</label>
-                  {editando.foto_portada && (
-                    <img src={editando.foto_portada} alt="Portada" className="w-full h-24 object-cover rounded-lg mb-2" />
-                  )}
+                  {editando.foto_portada && (<img src={editando.foto_portada} alt="Portada" className="w-full h-24 object-cover rounded-lg mb-2" />)}
                   <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoPortada ? 'bg-gray-300 text-gray-500' : 'bg-dorado text-navy hover:bg-dorado-claro'}`}>
                     {subiendoPortada ? '⏳ Subiendo...' : '📷 Subir foto de portada'}
                     <input type="file" accept="image/*" onChange={manejarSubidaPortada} className="hidden" disabled={subiendoPortada} />
@@ -358,21 +339,14 @@ function AdminPanel({ onClose }) {
                 </div>
               </div>
 
-              {/* GALERÍA DINÁMICA SEGÚN PLAN */}
               {maxGaleria > 0 ? (
                 <div className="mt-6">
-                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">
-                    Galería ({(editando.galeria || []).length}/{maxGaleria} imágenes)
-                  </label>
+                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">Galería ({(editando.galeria || []).length}/{maxGaleria} imágenes)</label>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-2">
                     {(editando.galeria || []).map((foto, idx) => (
                       <div key={idx} className="relative">
                         <img src={foto} alt={`Galería ${idx + 1}`} className="w-full aspect-square object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => quitarFotoGaleria(idx)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs font-bold hover:bg-red-600"
-                        >✕</button>
+                        <button type="button" onClick={() => quitarFotoGaleria(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs font-bold hover:bg-red-600">✕</button>
                       </div>
                     ))}
                   </div>
@@ -387,7 +361,6 @@ function AdminPanel({ onClose }) {
                 <p className="mt-4 font-body text-navy/50 text-xs">📷 La galería de fotos está disponible en los planes Destacado (3 fotos) y Patrocinado (5 fotos).</p>
               )}
 
-              {/* VIDEO Y BANNER (solo Patrocinado) */}
               {editando.plan === 'Patrocinado' && (
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -396,9 +369,7 @@ function AdminPanel({ onClose }) {
                   </div>
                   <div>
                     <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Banner propio</label>
-                    {editando.banner_url && (
-                      <img src={editando.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-lg mb-2" />
-                    )}
+                    {editando.banner_url && (<img src={editando.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-lg mb-2" />)}
                     <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoBanner ? 'bg-gray-300 text-gray-500' : 'bg-navy text-crema hover:bg-navy-dark'}`}>
                       {subiendoBanner ? '⏳ Subiendo...' : '🖼️ Subir banner'}
                       <input type="file" accept="image/*" onChange={manejarSubidaBanner} className="hidden" disabled={subiendoBanner} />
@@ -409,12 +380,8 @@ function AdminPanel({ onClose }) {
             </div>
 
             <div className="flex gap-4 pt-4 border-t border-navy/10">
-              <button onClick={guardarNegocio} className="flex-1 bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">
-                💾 Guardar Cambios {editando.activo ? '' : 'y Aprobar'}
-              </button>
-              <button onClick={() => eliminarNegocio(editando.id, editando.nombre)} className="px-8 py-3 border-2 border-red-500 text-red-600 rounded-lg font-body font-bold hover:bg-red-50 transition">
-                🗑️ Eliminar
-              </button>
+              <button onClick={guardarNegocio} className="flex-1 bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">💾 Guardar Cambios {editando.activo ? '' : 'y Aprobar'}</button>
+              <button onClick={() => eliminarNegocio(editando.id, editando.nombre)} className="px-8 py-3 border-2 border-red-500 text-red-600 rounded-lg font-body font-bold hover:bg-red-50 transition">🗑️ Eliminar</button>
             </div>
           </div>
         </div>
@@ -430,35 +397,12 @@ function AdminPanel({ onClose }) {
           <button onClick={onClose} className="bg-red-500 text-white px-4 py-2 rounded-lg font-body font-bold hover:bg-red-600 transition">Salir</button>
         </div>
         {mensaje && (
-          <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            {mensaje}
-          </div>
+          <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{mensaje}</div>
         )}
         <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setVistaActual('dashboard')}
-            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
-              vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
-            }`}
-          >
-            📊 Dashboard
-          </button>
-          <button
-            onClick={() => setVistaActual('pendientes')}
-            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
-              vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
-            }`}
-          >
-            🕒 Pendientes ({pendientes.length})
-          </button>
-          <button
-            onClick={() => setVistaActual('publicados')}
-            className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
-              vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
-            }`}
-          >
-            ✅ Publicados ({publicados.length})
-          </button>
+          <button onClick={() => setVistaActual('dashboard')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>📊 Dashboard</button>
+          <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
+          <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
         </div>
 
         {vistaActual === 'dashboard' && (
@@ -488,43 +432,26 @@ function AdminPanel({ onClose }) {
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">Distribución por Plan (Activos)</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gray-100 p-4 rounded-lg text-center">
-                  <p className="font-label text-gray-600 text-xs uppercase font-bold">Gratuito</p>
-                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Gratuito'] || 0}</p>
-                </div>
-                <div className="bg-crema p-4 rounded-lg text-center border border-navy/10">
-                  <p className="font-label text-navy/70 text-xs uppercase font-bold">Estándar</p>
-                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Estándar'] || 0}</p>
-                </div>
-                <div className="bg-dorado/20 p-4 rounded-lg text-center border border-dorado">
-                  <p className="font-label text-navy text-xs uppercase font-bold">Destacado</p>
-                  <p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Destacado'] || 0}</p>
-                </div>
-                <div className="bg-navy p-4 rounded-lg text-center">
-                  <p className="font-label text-crema/80 text-xs uppercase font-bold">Patrocinado</p>
-                  <p className="font-display text-3xl text-crema mt-1">{conteoPorPlan['Patrocinado'] || 0}</p>
-                </div>
+                <div className="bg-gray-100 p-4 rounded-lg text-center"><p className="font-label text-gray-600 text-xs uppercase font-bold">Gratuito</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Gratuito'] || 0}</p></div>
+                <div className="bg-crema p-4 rounded-lg text-center border border-navy/10"><p className="font-label text-navy/70 text-xs uppercase font-bold">Estándar</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Estándar'] || 0}</p></div>
+                <div className="bg-dorado/20 p-4 rounded-lg text-center border border-dorado"><p className="font-label text-navy text-xs uppercase font-bold">Destacado</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Destacado'] || 0}</p></div>
+                <div className="bg-navy p-4 rounded-lg text-center"><p className="font-label text-crema/80 text-xs uppercase font-bold">Patrocinado</p><p className="font-display text-3xl text-crema mt-1">{conteoPorPlan['Patrocinado'] || 0}</p></div>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
               <h3 className="font-display text-2xl text-navy mb-4 tracking-wide">Últimos 5 Registros</h3>
               <div className="space-y-3">
-                {[...pendientes, ...publicados]
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                  .slice(0, 5)
-                  .map((n) => (
-                    <div key={n.id} className="flex justify-between items-center p-3 bg-crema/30 rounded-lg hover:bg-crema transition cursor-pointer" onClick={() => abrirEdicion(n)}>
-                      <div>
-                        <p className="font-body font-bold text-navy">{n.nombre}</p>
-                        <p className="font-body text-xs text-navy/60">{n.tipo} • {n.plan}</p>
-                      </div>
-                      <span className={`font-label text-xs px-2 py-1 rounded ${
-                        n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'
-                      }`}>
-                        {n.activo ? (n.suspendido ? 'Suspendido' : 'Activo') : 'Pendiente'}
-                      </span>
+                {[...pendientes, ...publicados].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5).map((n) => (
+                  <div key={n.id} className="flex justify-between items-center p-3 bg-crema/30 rounded-lg hover:bg-crema transition cursor-pointer" onClick={() => abrirEdicion(n)}>
+                    <div>
+                      <p className="font-body font-bold text-navy">{n.nombre}</p>
+                      <p className="font-body text-xs text-navy/60">{n.tipo} • {n.plan}</p>
                     </div>
-                  ))}
+                    <span className={`font-label text-xs px-2 py-1 rounded ${n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'}`}>
+                      {n.activo ? (n.suspendido ? 'Suspendido' : 'Activo') : 'Pendiente'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -536,15 +463,7 @@ function AdminPanel({ onClose }) {
               <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
               <div className="flex flex-wrap gap-2">
                 {PLANES.map(plan => (
-                  <button
-                    key={plan}
-                    onClick={() => setFiltroPlan(plan)}
-                    className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${
-                      filtroPlan === plan ? 'bg-navy text-crema' : 'bg-crema text-navy hover:bg-navy/10'
-                    }`}
-                  >
-                    {plan}
-                  </button>
+                  <button key={plan} onClick={() => setFiltroPlan(plan)} className={`px-3 py-1 rounded-full text-xs font-body font-bold transition ${filtroPlan === plan ? 'bg-navy text-crema' : 'bg-crema text-navy hover:bg-navy/10'}`}>{plan}</button>
                 ))}
               </div>
               <button onClick={cargarDatos} className="ml-auto text-xs bg-navy/10 px-3 py-1 rounded hover:bg-navy/20 transition font-bold">🔄 Actualizar</button>
@@ -589,11 +508,7 @@ function AdminPanel({ onClose }) {
                             <td className="p-4">
                               <span className="inline-block bg-crema text-navy text-xs px-2 py-1 rounded mb-1 border border-navy/10">{sol.categoria}</span>
                               <br />
-                              <span className={`inline-block text-xs px-2 py-1 rounded font-bold ${
-                                sol.plan === 'Patrocinado' ? 'bg-navy text-crema' :
-                                sol.plan === 'Destacado' ? 'bg-dorado text-navy' :
-                                'bg-gray-200 text-gray-700'
-                              }`}>{sol.plan}</span>
+                              <span className={`inline-block text-xs px-2 py-1 rounded font-bold ${sol.plan === 'Patrocinado' ? 'bg-navy text-crema' : sol.plan === 'Destacado' ? 'bg-dorado text-navy' : 'bg-gray-200 text-gray-700'}`}>{sol.plan}</span>
                             </td>
                             <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} 👁️</td>
                             <td className="p-4">
