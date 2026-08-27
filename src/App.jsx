@@ -262,32 +262,63 @@ function HomePage() {
               <button onClick={volverAlInicio} className="bg-navy text-white px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-light transition">Ver todas las categorías</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {negociosFiltrados.map((n) => (
-                <div key={n.id} onClick={() => handleVerFicha(n.id)} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-2 cursor-pointer ${
-                  n.plan === 'Patrocinado' ? 'border-navy' :
-                  n.plan === 'Destacado' ? 'border-dorado' :
-                  'border-navy/10'
-                }`}>
-                  {n.plan && n.plan !== 'Gratuito' && (
-                    <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
-                      n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
-                      n.plan === 'Destacado' ? 'bg-dorado text-navy' :
-                      'bg-crema text-navy'
-                    }`}>{n.plan}</span>
-                  )}
-                  {n.foto_portada && (
-                    <div className="flex justify-center mb-4">
-                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
-                    </div>
-                  )}
-                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
-                  <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
-                  {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
-                  <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
-                  <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">Ver ficha completa →</button>
-                </div>
-              ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {negociosFiltrados.map((n) => {
+                const esGratuito = n.plan === 'Gratuito';
+                return (
+                  <div 
+                    key={n.id} 
+                    onClick={() => !esGratuito && handleVerFicha(n.id)} 
+                    className={`bg-white p-6 rounded-lg shadow-md transition duration-300 border-2 ${
+                      esGratuito 
+                        ? 'border-gray-200' 
+                        : n.plan === 'Patrocinado' 
+                          ? 'border-navy cursor-pointer hover:shadow-xl' 
+                          : n.plan === 'Destacado' 
+                            ? 'border-dorado cursor-pointer hover:shadow-xl' 
+                            : 'border-navy/10 cursor-pointer hover:shadow-xl'
+                    }`}
+                  >
+                    {/* Badge solo para planes pagos */}
+                    {!esGratuito && n.plan && (
+                      <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
+                        n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
+                        n.plan === 'Destacado' ? 'bg-dorado text-navy' :
+                        'bg-crema text-navy'
+                      }`}>
+                        {n.plan}
+                      </span>
+                    )}
+
+                    {/* Foto solo para planes pagos */}
+                    {!esGratuito && n.foto_portada && (
+                      <div className="flex justify-center mb-4">
+                        <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
+                      </div>
+                    )}
+
+                    <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
+                    <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
+
+                    {/* Contenido condicional: Dirección para gratuitos, Descripción + Botón para pagos */}
+                    {esGratuito ? (
+                      n.direccion && (
+                        <p className="font-body text-navy/70 text-base mb-4 flex items-center gap-2">
+                          <span>📍</span> {n.direccion}
+                        </p>
+                      )
+                    ) : (
+                      <>
+                        {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
+                        <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
+                        <button className="w-full text-center bg-navy text-crema py-2 rounded-lg font-body font-medium text-sm hover:bg-navy-dark transition">
+                          Ver ficha completa →
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

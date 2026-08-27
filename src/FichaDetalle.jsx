@@ -80,7 +80,7 @@ const planColors = {
 const colors = planColors[plan] || planColors['Gratuito']
 const getMapsUrl = () => {
 if (negocio.google_maps_url) return negocio.google_maps_url
-if (negocio.direccion) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio.direccion + ', Realicó, La Pampa, Argentina')}`
+if (negocio.direccion) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(negocio.direccion + ', ó, La Pampa, Argentina')}`
 return null
 }
 const getMapsEmbedUrl = () => {
