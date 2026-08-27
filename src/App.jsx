@@ -15,6 +15,7 @@ function HomePage() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
+  const [planSeleccionado, setPlanSeleccionado] = useState('Gratuito')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -325,64 +326,103 @@ function HomePage() {
       )}
 
       {/* PLANES */}
-      {!categoriaSeleccionada && !busqueda && (
-        <section id="planes" className="bg-navy text-white py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
-            <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">
-              Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li>✓ Nombre y categorías</li>
-                  <li>✓ Dirección</li>
-                  <li>✓ Teléfono (texto)</li>
-                </ul>
-                <button className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-default text-sm">Actual</button>
-              </div>
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li>✓ Todo lo del Gratuito</li>
-                  <li>✓ Botón WhatsApp</li>
-                  <li>✓ 1 foto de portada</li>
-                  <li>✓ Horario</li>
-                </ul>
-                <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
-              </div>
-              <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro">
-                <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
-                <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li>✓ Todo lo del Estándar</li>
-                  <li>✓ Galería (3 fotos)</li>
-                  <li>✓ Redes sociales</li>
-                  <li>✓ Google Maps</li>
-                  <li>✓ Badge "Destacado"</li>
-                </ul>
-                <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Elegir Plan</button>
-              </div>
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm">
-                  <li>✓ Todo lo del Destacado</li>
-                  <li>✓ Galería + video</li>
-                  <li>✓ Banner en home</li>
-                  <li>✓ Logo en header</li>
-                  <li>✓ Botón "Cómo llegar"</li>
-                </ul>
-                <button className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm">Contactar</button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+{!categoriaSeleccionada && !busqueda && (
+  <section id="planes" className="bg-navy text-white py-16">
+    <div className="container mx-auto px-4">
+      <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
+      <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">
+        Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        {/* PLAN GRATUITO */}
+        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+          <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
+          <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
+          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+            <li>✓ Nombre y categorías</li>
+            <li>✓ Dirección</li>
+            <li>✓ Teléfono (texto)</li>
+          </ul>
+          <button
+            onClick={() => {
+              setMostrarFormulario(true)
+              setPlanSeleccionado('Gratuito')
+            }}
+            className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-pointer text-sm hover:bg-navy/30 transition mt-auto"
+          >
+            Seleccionar
+          </button>
+        </div>
+
+        {/* PLAN ESTÁNDAR */}
+        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+          <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
+          <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
+          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+            <li>✓ Todo lo del Gratuito</li>
+            <li>✓ Botón WhatsApp</li>
+            <li>✓ 1 foto de portada</li>
+            <li>✓ Horario</li>
+          </ul>
+          <button
+            onClick={() => {
+              setMostrarFormulario(true)
+              setPlanSeleccionado('Estándar')
+            }}
+            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
+          >
+            Seleccionar
+          </button>
+        </div>
+
+        {/* PLAN DESTACADO */}
+        <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro flex flex-col">
+          <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
+          <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
+          <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
+          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+            <li>✓ Todo lo del Estándar</li>
+            <li>✓ Galería (3 fotos)</li>
+            <li>✓ Redes sociales</li>
+            <li>✓ Google Maps</li>
+            <li>✓ Badge "Destacado"</li>
+          </ul>
+          <button
+            onClick={() => {
+              setMostrarFormulario(true)
+              setPlanSeleccionado('Destacado')
+            }}
+            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
+          >
+            Seleccionar
+          </button>
+        </div>
+
+        {/* PLAN PATROCINADO */}
+        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+          <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
+          <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
+          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+            <li>✓ Todo lo del Destacado</li>
+            <li>✓ Galería + video</li>
+            <li>✓ Banner en home</li>
+            <li>✓ Logo en header</li>
+            <li>✓ Botón "Cómo llegar"</li>
+          </ul>
+          <button
+            onClick={() => {
+              setMostrarFormulario(true)
+              setPlanSeleccionado('Patrocinado')
+            }}
+            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
+          >
+            Seleccionar
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
 
       {/* CTA */}
       {!categoriaSeleccionada && !busqueda && (
@@ -428,7 +468,7 @@ function HomePage() {
         </div>
       </footer>
 
-      {mostrarFormulario && <FormularioComercio onClose={() => setMostrarFormulario(false)} />}
+      {mostrarFormulario && <FormularioComercio onClose={() => setMostrarFormulario(false)} planInicial={planSeleccionado} />}
       {mostrarAdmin && <AdminPanel onClose={() => setMostrarAdmin(false)} />}
     </div>
   )

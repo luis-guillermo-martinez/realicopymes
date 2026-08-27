@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
 
-function FormularioComercio({ onClose }) {
+function FormularioComercio({ onClose, planInicial = 'Gratuito' }) {
   const [formData, setFormData] = useState({
     nombre: '',
     tipo: 'Comercio',
@@ -14,7 +14,7 @@ function FormularioComercio({ onClose }) {
     direccion: '',
     horario: '',
     google_maps_url: '',
-    plan: 'Gratuito',
+    plan: planInicial,
     instagram: '',
     facebook: '',
     recomendacion: ''
