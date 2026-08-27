@@ -109,41 +109,85 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-      {/* HEADER */}
+            {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
+            {/* LOGO */}
+            <div className="flex items-center flex-shrink-0">
               <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
                 <img src="/logo.png" alt="MiPin" className="h-10 md:h-12 w-auto" />
               </div>
             </div>
-            <div className="hidden md:flex items-center space-x-8 font-body font-semibold">
+            
+            {/* MENÚ ESCRITORIO (oculto en móvil) */}
+            <div className="hidden md:flex items-center space-x-6 lg:space-x-8 font-body font-semibold">
               <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
               <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
               <a href="#planes" className="text-navy hover:text-dorado transition">Planes</a>
               <a href="/mapa" className="text-navy hover:text-dorado transition">Mapa</a>
-              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">
+              <button 
+                onClick={() => setMostrarFormulario(true)} 
+                className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition"
+              >
                 Publicar
               </button>
             </div>
-            <button onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} className="md:hidden text-navy p-2 hover:bg-navy/10 rounded-lg transition">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+            {/* BOTÓN MENÚ MÓVIL (hamburguesa) */}
+            <button 
+              onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} 
+              className="md:hidden flex items-center justify-center p-2 text-navy bg-crema border border-navy/10 rounded-lg hover:bg-navy/5 transition"
+              aria-label="Abrir menú"
+            >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mostrarMenuMovil ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
           </div>
+
+          {/* MENÚ DESPLEGABLE MÓVIL */}
           {mostrarMenuMovil && (
-            <div className="md:hidden mt-4 pb-4 border-t border-navy/10 pt-4">
+            <div className="md:hidden mt-4 pb-4 border-t border-navy/10 pt-4 animate-fade-in">
               <div className="flex flex-col space-y-3 font-body font-semibold">
-                <a href="#" onClick={() => { volverAlInicio(); setMostrarMenuMovil(false) }} className="text-navy hover:text-dorado transition py-2">Inicio</a>
-                <a href="#categorias" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2">Categorías</a>
-                <a href="#planes" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2">Planes</a>
-                <button onClick={() => { setMostrarFormulario(true); setMostrarMenuMovil(false) }} className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center">Publicar</button>
+                <a 
+                  href="#" 
+                  onClick={() => { volverAlInicio(); setMostrarMenuMovil(false); }} 
+                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
+                >
+                  Inicio
+                </a>
+                <a 
+                  href="#categorias" 
+                  onClick={() => setMostrarMenuMovil(false)} 
+                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
+                >
+                  Categorías
+                </a>
+                <a 
+                  href="#planes" 
+                  onClick={() => setMostrarMenuMovil(false)} 
+                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
+                >
+                  Planes
+                </a>
+                <a 
+                  href="/mapa" 
+                  onClick={() => setMostrarMenuMovil(false)} 
+                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
+                >
+                  Mapa
+                </a>
+                <button 
+                  onClick={() => { setMostrarFormulario(true); setMostrarMenuMovil(false); }} 
+                  className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center mt-2"
+                >
+                  Publicar
+                </button>
               </div>
             </div>
           )}
