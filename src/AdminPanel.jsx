@@ -5,6 +5,7 @@ function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [vistaActual, setVistaActual] = useState('dashboard')
+  const [resenas, setResenas] = useState([])
   const [filtroPlan, setFiltroPlan] = useState('Todos')
   const [pendientes, setPendientes] = useState([])
   const [publicados, setPublicados] = useState([])
@@ -27,6 +28,11 @@ function AdminPanel({ onClose }) {
     const { data: dataPublicados } = await supabase.from('negocios').select('*').eq('activo', true).order('created_at', { ascending: false })
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
+    const { data: dataResenas } = await supabase
+  .from('resenas')
+  .select('*, negocios(nombre)')
+  .order('created_at', { ascending: false })
+    setResenas(dataResenas || [])
     setCargando(false)
   }
 
@@ -189,7 +195,29 @@ function AdminPanel({ onClose }) {
       setMensaje('❌ Error: ' + error.message)
     }
   }
+  const aprobarResena = async (resena) => {
+  const { error } = await supabase
+    .from('resenas')
+    .update({ aprobado: true })
+    .eq('id', resena.id)
+  if (error) {
+    setMensaje('❌ Error: ' + error.message)
+  } else {
+    setMensaje(`✅ Resena de "${resena.nombre}" aprobada.`)
+    cargarDatos()
+  }
+}
 
+const eliminarResena = async (id) => {
+  if (!window.confirm('¿Eliminar esta reseña?')) return
+  const { error } = await supabase.from('resenas').delete().eq('id', id)
+  if (error) {
+    setMensaje('❌ Error: ' + error.message)
+  } else {
+    setMensaje('️ Reseña eliminada.')
+    cargarDatos()
+  }
+}
   const toggleSuspender = async (negocio) => {
     const nuevoEstado = !negocio.suspendido
     const accion = nuevoEstado ? 'SUSPENDER' : 'REACTIVAR'
@@ -403,6 +431,14 @@ function AdminPanel({ onClose }) {
           <button onClick={() => setVistaActual('dashboard')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>📊 Dashboard</button>
           <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
           <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
+          <button
+  onClick={() => setVistaActual('resenas')}
+  className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
+    vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
+  }`}
+>
+  ⭐ Reseñas ({resenas.filter(r => !r.aprobado).length})
+</button>
         </div>
 
         {vistaActual === 'dashboard' && (
@@ -533,6 +569,57 @@ function AdminPanel({ onClose }) {
           </>
         )}
       </div>
+  {vistaActual === 'resenas' && (
+  <div className="bg-white rounded-b-xl shadow-lg p-6">
+    <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestión de Reseñas</h3>
+    
+    {resenas.length === 0 ? (
+      <p className="text-navy/60 text-center py-8">No hay reseñas registradas</p>
+    ) : (
+      <div className="space-y-4">
+        {resenas.map((r) => (
+          <div key={r.id} className={`p-4 rounded-lg border-2 ${
+            r.aprobado ? 'bg-green-50 border-green-200' : 'bg-dorado/10 border-dorado'
+          }`}>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <p className="font-body font-bold text-navy">{r.nombre}</p>
+                <p className="font-body text-xs text-navy/60">
+                  Para: {r.negocios?.nombre || 'Negocio eliminado'} • {new Date(r.created_at).toLocaleDateString('es-AR')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-dorado text-lg">{'★'.repeat(r.estrellas)}{'☆'.repeat(5 - r.estrellas)}</span>
+                <span className={`font-label text-xs px-2 py-1 rounded ${
+                  r.aprobado ? 'bg-green-500 text-white' : 'bg-dorado text-navy'
+                }`}>
+                  {r.aprobado ? 'Publicada' : 'Pendiente'}
+                </span>
+              </div>
+            </div>
+            <p className="font-body text-navy/80 text-sm mb-3">{r.comentario}</p>
+            <div className="flex gap-2">
+              {!r.aprobado && (
+                <button
+                  onClick={() => aprobarResena(r)}
+                  className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition"
+                >
+                  ✅ Aprobar
+                </button>
+              )}
+              <button
+                onClick={() => eliminarResena(r.id)}
+                className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition"
+              >
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
     </div>
   )
 }

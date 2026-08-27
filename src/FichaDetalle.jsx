@@ -8,6 +8,11 @@ const [negocio, setNegocio] = useState(null)
 const [cargando, setCargando] = useState(true)
 const [error, setError] = useState(null)
 const [fotoLightbox, setFotoLightbox] = useState(null)
+const [resenas, setResenas] = useState([])
+const [promedio, setPromedio] = useState(0)
+const [nuevaResena, setNuevaResena] = useState({ nombre: '', comentario: '', estrellas: 5 })
+const [enviandoResena, setEnviandoResena] = useState(false)
+const [mensajeResena, setMensajeResena] = useState('')
 useEffect(() => { cargarFicha() }, [id])
 useEffect(() => {
 const manejarTecla = (e) => { if (e.key === 'Escape') setFotoLightbox(null) }
@@ -21,6 +26,22 @@ const { data, error } = await supabase.from('negocios').select('*').eq('id', id)
 if (error) throw error
 setNegocio(data)
 await supabase.from('negocios').update({ vistas: (data.vistas || 0) + 1 }).eq('id', id)
+// Cargar reseñas aprobadas
+const { data: dataResenas } = await supabase
+  .from('resenas')
+  .select('*')
+  .eq('negocio_id', id)
+  .eq('aprobado', true)
+  .order('created_at', { ascending: false })
+setResenas(dataResenas || [])
+
+// Calcular promedio
+if (dataResenas && dataResenas.length > 0) {
+  const suma = dataResenas.reduce((acc, r) => acc + r.estrellas, 0)
+  setPromedio(suma / dataResenas.length)
+} else {
+  setPromedio(0)
+}
 } catch (err) {
 console.error('Error cargando ficha:', err)
 setError('No se encontró esta ficha.')
@@ -32,6 +53,40 @@ if (typeof negocio.redes_sociales === 'string') {
 try { return JSON.parse(negocio.redes_sociales) } catch { return {} }
 }
 return negocio.redes_sociales
+}
+const enviarResena = async (e) => {
+  e.preventDefault()
+  if (!nuevaResena.nombre.trim() || !nuevaResena.comentario.trim()) {
+    setMensajeResena('❌ Completá nombre y comentario.')
+    return
+  }
+  setEnviandoResena(true)
+  setMensajeResena('')
+  try {
+    const { error } = await supabase.from('resenas').insert([{
+      negocio_id: id,
+      nombre: nuevaResena.nombre,
+      comentario: nuevaResena.comentario,
+      estrellas: nuevaResena.estrellas,
+      aprobado: false
+    }])
+    if (error) throw error
+    setMensajeResena('✅ ¡Gracias! Tu reseña será publicada tras revisión.')
+    setNuevaResena({ nombre: '', comentario: '', estrellas: 5 })
+  } catch (err) {
+    setMensajeResena('❌ Error: ' + err.message)
+  } finally {
+    setEnviandoResena(false)
+  }
+}
+
+const renderEstrellas = (cantidad, tamano = 'text-lg') => {
+  return (
+    <span className={`${tamano} text-dorado`}>
+      {'★'.repeat(Math.round(cantidad))}
+      {'☆'.repeat(5 - Math.round(cantidad))}
+    </span>
+  )
 }
 const getGaleria = () => {
 if (!negocio.galeria) return []
@@ -210,6 +265,92 @@ return (
 </div>
 )}
 </div>
+</section>
+{/* SECCIÓN RESEÑAS */}
+<section className="bg-white p-6 rounded-xl shadow-md">
+  <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">Reseñas</h2>
+  
+  {resenas.length > 0 ? (
+    <>
+      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-navy/10">
+        <div className="text-4xl font-display text-navy">{promedio.toFixed(1)}</div>
+        <div>
+          {renderEstrellas(promedio)}
+          <p className="font-body text-navy/60 text-sm">{resenas.length} reseña{resenas.length !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {resenas.map((r) => (
+          <div key={r.id} className="bg-crema/30 p-4 rounded-lg">
+            <div className="flex justify-between items-start mb-2">
+              <p className="font-body font-bold text-navy">{r.nombre}</p>
+              {renderEstrellas(r.estrellas, 'text-sm')}
+            </div>
+            <p className="font-body text-navy/80 text-sm">{r.comentario}</p>
+            <p className="font-body text-navy/40 text-xs mt-2">
+              {new Date(r.created_at).toLocaleDateString('es-AR')}
+            </p>
+          </div>
+        ))}
+      </div>
+    </>
+  ) : (
+    <p className="font-body text-navy/60 text-center py-6 mb-4">Aún no hay reseñas. ¡Sé el primero!</p>
+  )}
+
+  {/* FORMULARIO NUEVA RESEÑA */}
+  <div className="border-t border-navy/10 pt-6 mt-6">
+    <h3 className="font-display text-xl text-navy mb-4">Dejá tu reseña</h3>
+    {mensajeResena && (
+      <div className={`p-3 rounded-lg mb-4 font-body text-sm font-bold ${
+        mensajeResena.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}>
+        {mensajeResena}
+      </div>
+    )}
+    <form onSubmit={enviarResena} className="space-y-3">
+      <input
+        type="text"
+        placeholder="Tu nombre"
+        value={nuevaResena.nombre}
+        onChange={(e) => setNuevaResena({ ...nuevaResena, nombre: e.target.value })}
+        className="w-full px-3 py-2 border border-navy/20 rounded-lg font-body text-sm focus:ring-2 focus:ring-dorado focus:outline-none"
+        required
+      />
+      <div>
+        <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-2">Calificación</p>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setNuevaResena({ ...nuevaResena, estrellas: n })}
+              className={`text-3xl transition ${
+                n <= nuevaResena.estrellas ? 'text-dorado' : 'text-gray-300'
+              } hover:scale-110`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+      </div>
+      <textarea
+        placeholder="Contá tu experiencia..."
+        value={nuevaResena.comentario}
+        onChange={(e) => setNuevaResena({ ...nuevaResena, comentario: e.target.value })}
+        rows="3"
+        className="w-full px-3 py-2 border border-navy/20 rounded-lg font-body text-sm focus:ring-2 focus:ring-dorado focus:outline-none"
+        required
+      />
+      <button
+        type="submit"
+        disabled={enviandoResena}
+        className="w-full bg-dorado text-navy py-2 rounded-lg font-body font-bold hover:bg-dorado-claro transition disabled:opacity-50"
+      >
+        {enviandoResena ? 'Enviando...' : 'Enviar reseña'}
+      </button>
+    </form>
+  </div>
 </section>
 </div>
 <aside className="space-y-6">
