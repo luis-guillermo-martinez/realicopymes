@@ -184,6 +184,29 @@ return (
 <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Email</p>
 <a href={`mailto:${negocio.email}`} className="font-body text-navy text-lg font-semibold hover:text-dorado transition break-all block mb-3">{negocio.email}</a>
 <a href={`mailto:${negocio.email}?subject=Consulta desde MiPin - ${negocio.nombre}`} className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">✉️ Enviar Email</a>
+{/* BOTÓN COMPARTIR */}
+<div className="border-t border-navy/10 pt-4 mt-6">
+  <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Compartir esta ficha</p>
+  <div className="flex flex-col gap-2">
+    <a
+      href={`https://wa.me/?text=${encodeURIComponent(`Mirá ${negocio.nombre} en MiPin: ${window.location.href}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-2 bg-green-500 text-white py-2 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition"
+    >
+      <span>📱</span> Compartir por WhatsApp
+    </a>
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(window.location.href)
+        alert('¡Enlace copiado al portapapeles!')
+      }}
+      className="flex items-center justify-center gap-2 bg-navy/10 text-navy py-2 rounded-lg font-body font-bold text-sm hover:bg-navy/20 transition"
+    >
+      <span>🔗</span> Copiar enlace
+    </button>
+  </div>
+</div>
 </div>
 )}
 </div>

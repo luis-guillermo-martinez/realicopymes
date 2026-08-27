@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 import FormularioComercio from './FormularioComercio'
 import AdminPanel from './AdminPanel'
 import FichaDetalle from './FichaDetalle'
-
+import Mapa from './Mapa'
 function HomePage() {
   const [busqueda, setBusqueda] = useState('')
   const [negocios, setNegocios] = useState([])
@@ -122,6 +122,7 @@ function HomePage() {
               <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
               <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
               <a href="#planes" className="text-navy hover:text-dorado transition">Planes</a>
+              <a href="/mapa" className="text-navy hover:text-dorado transition">Mapa</a>
               <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">
                 Publicar
               </button>
@@ -484,6 +485,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/ficha/:id" element={<FichaDetalle />} />
+      <Route path="/mapa" element={<Mapa />} />
     </Routes>
   )
 }

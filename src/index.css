@@ -1,3 +1,4 @@
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -28,4 +29,25 @@ h1, h2, h3 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+/* Pines del mapa con foto */
+.custom-marker-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-marker-pin img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50% 50% 50% 0;
+  border: 3px solid white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transform: rotate(-45deg);
+}
+
+/* Fallback sin foto */
+.custom-marker-fallback {
+  background: transparent !important;
+  border: none !important;
 }
