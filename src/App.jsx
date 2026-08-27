@@ -303,12 +303,17 @@ function HomePage() {
 
                     {/* Contenido condicional: Dirección para gratuitos, Descripción + Botón para pagos */}
                     {esGratuito ? (
-                      n.direccion && (
-                        <p className="font-body text-navy/70 text-base mb-4 flex items-center gap-2">
-                          <span>📍</span> {n.direccion}
-                        </p>
-                      )
-                    ) : (
+  <div className="space-y-2">
+    {n.direccion && (
+      <p className="font-body text-navy/70 text-base flex items-center gap-2">
+        <span>📍</span> {n.direccion}
+      </p>
+    )}
+    <p className="font-body text-navy/40 text-xs flex items-center gap-1">
+      <span></span> {n.vistas || 0} vistas
+    </p>
+  </div>
+) : (
                       <>
                         {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
                         <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
