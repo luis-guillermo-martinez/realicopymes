@@ -345,7 +345,7 @@ function HomePage() {
               </div>
               <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$X.XXX/mes</p>
+                <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li>✓ Todo lo del Gratuito</li>
                   <li>✓ Botón WhatsApp</li>
@@ -357,7 +357,7 @@ function HomePage() {
               <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro">
                 <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
-                <p className="font-body text-navy/80 mb-4 font-semibold">$X.XXX/mes</p>
+                <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li>✓ Todo lo del Estándar</li>
                   <li>✓ Galería (3 fotos)</li>
@@ -369,7 +369,7 @@ function HomePage() {
               </div>
               <div className="bg-crema text-navy p-6 rounded-xl shadow-lg">
                 <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">Consultar</p>
+                <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
                 <ul className="space-y-2 mb-6 font-body text-sm">
                   <li>✓ Todo lo del Destacado</li>
                   <li>✓ Galería + video</li>
