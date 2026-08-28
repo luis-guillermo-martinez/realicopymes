@@ -28,10 +28,12 @@ function AdminPanel({ onClose }) {
     const { data: dataPublicados } = await supabase.from('negocios').select('*').eq('activo', true).order('created_at', { ascending: false })
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
+    
+    // Cargar reseñas con el nombre del negocio asociado
     const { data: dataResenas } = await supabase
-  .from('resenas')
-  .select('*, negocios(nombre)')
-  .order('created_at', { ascending: false })
+      .from('resenas')
+      .select('*, negocios(nombre)')
+      .order('created_at', { ascending: false })
     setResenas(dataResenas || [])
     setCargando(false)
   }
@@ -61,6 +63,15 @@ function AdminPanel({ onClose }) {
 
   const handleInputChange = (e) => {
     setEditando({ ...editando, [e.target.name]: e.target.value })
+  }
+
+  // Función para generar URLs amigables (SEO)
+  const generarSlug = (nombre) => {
+    return nombre
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
   }
 
   const maxGaleria = editando ? (editando.plan === 'Patrocinado' ? 5 : editando.plan === 'Destacado' ? 3 : 0) : 0
@@ -139,7 +150,6 @@ function AdminPanel({ onClose }) {
     if (!window.confirm(`¿Guardar cambios y ${editando.activo ? 'actualizar' : 'aprobar y publicar'} a "${editando.nombre}"?`)) return
     setMensaje('Procesando...')
     try {
-      // Procesar categorías: separar por coma, limpiar espacios y limitar a 3
       const categoriasArray = editando.categoria.split(',').map(c => c.trim()).filter(c => c !== '').slice(0, 3)
       const categoriaFinal = categoriasArray.join(', ')
 
@@ -147,12 +157,14 @@ function AdminPanel({ onClose }) {
         instagram: editando.instagram || '',
         facebook: editando.facebook || ''
       })
+      
       const { error } = await supabase
         .from('negocios')
         .update({
           nombre: editando.nombre,
+          slug: generarSlug(editando.nombre), // Actualiza la URL amigable si cambia el nombre
           tipo: editando.tipo,
-          categoria: categoriaFinal, // <-- Guardamos la versión limpia
+          categoria: categoriaFinal,
           descripcion: editando.descripcion,
           direccion: editando.direccion,
           telefono: editando.telefono,
@@ -195,29 +207,28 @@ function AdminPanel({ onClose }) {
       setMensaje('❌ Error: ' + error.message)
     }
   }
-  const aprobarResena = async (resena) => {
-  const { error } = await supabase
-    .from('resenas')
-    .update({ aprobado: true })
-    .eq('id', resena.id)
-  if (error) {
-    setMensaje('❌ Error: ' + error.message)
-  } else {
-    setMensaje(`✅ Resena de "${resena.nombre}" aprobada.`)
-    cargarDatos()
-  }
-}
 
-const eliminarResena = async (id) => {
-  if (!window.confirm('¿Eliminar esta reseña?')) return
-  const { error } = await supabase.from('resenas').delete().eq('id', id)
-  if (error) {
-    setMensaje('❌ Error: ' + error.message)
-  } else {
-    setMensaje('️ Reseña eliminada.')
-    cargarDatos()
+  const aprobarResena = async (resena) => {
+    const { error } = await supabase.from('resenas').update({ aprobado: true }).eq('id', resena.id)
+    if (error) {
+      setMensaje('❌ Error: ' + error.message)
+    } else {
+      setMensaje(`✅ Reseña de "${resena.nombre}" aprobada.`)
+      cargarDatos()
+    }
   }
-}
+
+  const eliminarResena = async (id) => {
+    if (!window.confirm('¿Eliminar esta reseña?')) return
+    const { error } = await supabase.from('resenas').delete().eq('id', id)
+    if (error) {
+      setMensaje('❌ Error: ' + error.message)
+    } else {
+      setMensaje('🗑️ Reseña eliminada.')
+      cargarDatos()
+    }
+  }
+
   const toggleSuspender = async (negocio) => {
     const nuevoEstado = !negocio.suspendido
     const accion = nuevoEstado ? 'SUSPENDER' : 'REACTIVAR'
@@ -427,18 +438,11 @@ const eliminarResena = async (id) => {
         {mensaje && (
           <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{mensaje}</div>
         )}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button onClick={() => setVistaActual('dashboard')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>📊 Dashboard</button>
           <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
           <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
-          <button
-  onClick={() => setVistaActual('resenas')}
-  className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${
-    vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'
-  }`}
->
-  ⭐ Reseñas ({resenas.filter(r => !r.aprobado).length})
-</button>
+          <button onClick={() => setVistaActual('resenas')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>⭐ Reseñas ({resenas.filter(r => !r.aprobado).length})</button>
         </div>
 
         {vistaActual === 'dashboard' && (
@@ -493,7 +497,44 @@ const eliminarResena = async (id) => {
           </div>
         )}
 
-        {vistaActual !== 'dashboard' && (
+        {/* VISTA DE RESEÑAS */}
+        {vistaActual === 'resenas' ? (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestión de Reseñas</h3>
+            {resenas.length === 0 ? (
+              <p className="text-navy/60 text-center py-8">No hay reseñas registradas</p>
+            ) : (
+              <div className="space-y-4">
+                {resenas.map((r) => (
+                  <div key={r.id} className={`p-4 rounded-lg border-2 ${r.aprobado ? 'bg-green-50 border-green-200' : 'bg-dorado/10 border-dorado'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-body font-bold text-navy">{r.nombre}</p>
+                        <p className="font-body text-xs text-navy/60">
+                          Para: {r.negocios?.nombre || 'Negocio eliminado'} • {new Date(r.created_at).toLocaleDateString('es-AR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-dorado text-lg">{'★'.repeat(r.estrellas)}{'☆'.repeat(5 - r.estrellas)}</span>
+                        <span className={`font-label text-xs px-2 py-1 rounded ${r.aprobado ? 'bg-green-500 text-white' : 'bg-dorado text-navy'}`}>
+                          {r.aprobado ? 'Publicada' : 'Pendiente'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="font-body text-navy/80 text-sm mb-3">{r.comentario}</p>
+                    <div className="flex gap-2">
+                      {!r.aprobado && (
+                        <button onClick={() => aprobarResena(r)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>
+                      )}
+                      <button onClick={() => eliminarResena(r.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition">🗑️ Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* VISTA DE PENDIENTES / PUBLICADOS */
           <>
             <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3 rounded-t-xl">
               <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
@@ -569,57 +610,6 @@ const eliminarResena = async (id) => {
           </>
         )}
       </div>
-  {vistaActual === 'resenas' && (
-  <div className="bg-white rounded-b-xl shadow-lg p-6">
-    <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestión de Reseñas</h3>
-    
-    {resenas.length === 0 ? (
-      <p className="text-navy/60 text-center py-8">No hay reseñas registradas</p>
-    ) : (
-      <div className="space-y-4">
-        {resenas.map((r) => (
-          <div key={r.id} className={`p-4 rounded-lg border-2 ${
-            r.aprobado ? 'bg-green-50 border-green-200' : 'bg-dorado/10 border-dorado'
-          }`}>
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="font-body font-bold text-navy">{r.nombre}</p>
-                <p className="font-body text-xs text-navy/60">
-                  Para: {r.negocios?.nombre || 'Negocio eliminado'} • {new Date(r.created_at).toLocaleDateString('es-AR')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-dorado text-lg">{'★'.repeat(r.estrellas)}{'☆'.repeat(5 - r.estrellas)}</span>
-                <span className={`font-label text-xs px-2 py-1 rounded ${
-                  r.aprobado ? 'bg-green-500 text-white' : 'bg-dorado text-navy'
-                }`}>
-                  {r.aprobado ? 'Publicada' : 'Pendiente'}
-                </span>
-              </div>
-            </div>
-            <p className="font-body text-navy/80 text-sm mb-3">{r.comentario}</p>
-            <div className="flex gap-2">
-              {!r.aprobado && (
-                <button
-                  onClick={() => aprobarResena(r)}
-                  className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition"
-                >
-                  ✅ Aprobar
-                </button>
-              )}
-              <button
-                onClick={() => eliminarResena(r.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition"
-              >
-                🗑️ Eliminar
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
     </div>
   )
 }

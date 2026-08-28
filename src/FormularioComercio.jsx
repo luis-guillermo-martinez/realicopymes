@@ -60,7 +60,13 @@ function FormularioComercio({ onClose, planInicial = 'Gratuito' }) {
       console.error('❌ Error Telegram:', err)
     }
   }
-
+const generarSlug = (nombre) => {
+  return nombre
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[^a-z0-9]+/g, "-") // Reemplazar no alfanuméricos por guiones
+    .replace(/^-+|-+$/g, ""); // Quitar guiones al inicio y final
+}
   const handleSubmit = async (e) => {
     e.preventDefault()
     
@@ -76,6 +82,7 @@ function FormularioComercio({ onClose, planInicial = 'Gratuito' }) {
     try {
       const datosParaDB = {
         nombre: formData.nombre,
+        slug: generarSlug(formData.nombre), // <-- AGREGAR ESTA LÍNEA
         tipo: formData.tipo,
         categoria: categoriasArray.join(', '), // Guardamos limpio: "Cat1, Cat2, Cat3"
         nombre_contacto: formData.nombre_contacto,

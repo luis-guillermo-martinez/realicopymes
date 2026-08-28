@@ -103,9 +103,9 @@ function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleVerFicha = (id) => {
-    navigate(`/ficha/${id}`)
-  }
+  const handleVerFicha = (slug) => {
+  navigate(`/ficha/${slug}`)
+}
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
@@ -227,7 +227,7 @@ function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosPatrocinados.map((n) => (
-                <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
+                <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
@@ -274,7 +274,7 @@ function HomePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {negociosDestacados.map((n) => (
-                <div key={n.id} onClick={() => handleVerFicha(n.id)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
+                <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
                   <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
                   {n.foto_portada && (
                     <div className="flex justify-center mb-4">
@@ -528,7 +528,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/ficha/:id" element={<FichaDetalle />} />
+      <Route path="/ficha/:slug" element={<FichaDetalle />} />
       <Route path="/mapa" element={<Mapa />} />
     </Routes>
   )
