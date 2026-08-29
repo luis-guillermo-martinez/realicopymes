@@ -6,6 +6,7 @@ function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [vistaActual, setVistaActual] = useState('dashboard')
   const [resenas, setResenas] = useState([])
+  const [promociones, setPromociones] = useState([]) // 🆕
   const [filtroPlan, setFiltroPlan] = useState('Todos')
   const [pendientes, setPendientes] = useState([])
   const [publicados, setPublicados] = useState([])
@@ -29,12 +30,19 @@ function AdminPanel({ onClose }) {
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
     
-    // Cargar reseñas con el nombre del negocio asociado
     const { data: dataResenas } = await supabase
       .from('resenas')
       .select('*, negocios(nombre)')
       .order('created_at', { ascending: false })
     setResenas(dataResenas || [])
+
+    // 🆕 Cargar promociones con el nombre del negocio
+    const { data: dataPromos } = await supabase
+      .from('promociones')
+      .select('*, negocios(nombre, plan)')
+      .order('created_at', { ascending: false })
+    setPromociones(dataPromos || [])
+
     setCargando(false)
   }
 
@@ -65,7 +73,6 @@ function AdminPanel({ onClose }) {
     setEditando({ ...editando, [e.target.name]: e.target.value })
   }
 
-  // Función para generar URLs amigables (SEO)
   const generarSlug = (nombre) => {
     return nombre
       .toLowerCase()
@@ -162,7 +169,7 @@ function AdminPanel({ onClose }) {
         .from('negocios')
         .update({
           nombre: editando.nombre,
-          slug: generarSlug(editando.nombre), // Actualiza la URL amigable si cambia el nombre
+          slug: generarSlug(editando.nombre),
           tipo: editando.tipo,
           categoria: categoriaFinal,
           descripcion: editando.descripcion,
@@ -225,6 +232,28 @@ function AdminPanel({ onClose }) {
       setMensaje('❌ Error: ' + error.message)
     } else {
       setMensaje('🗑️ Reseña eliminada.')
+      cargarDatos()
+    }
+  }
+
+  // 🆕 FUNCIONES DE MODERACIÓN DE PROMOCIONES
+  const aprobarPromo = async (id) => {
+    const { error } = await supabase.from('promociones').update({ aprobada: true }).eq('id', id)
+    if (error) {
+      setMensaje('❌ Error: ' + error.message)
+    } else {
+      setMensaje('✅ Promoción aprobada.')
+      cargarDatos()
+    }
+  }
+
+  const rechazarPromo = async (id) => {
+    if (!window.confirm('¿Rechazar y eliminar esta promoción?')) return
+    const { error } = await supabase.from('promociones').delete().eq('id', id)
+    if (error) {
+      setMensaje('❌ Error: ' + error.message)
+    } else {
+      setMensaje('🗑️ Promoción rechazada.')
       cargarDatos()
     }
   }
@@ -443,6 +472,7 @@ function AdminPanel({ onClose }) {
           <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
           <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
           <button onClick={() => setVistaActual('resenas')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>⭐ Reseñas ({resenas.filter(r => !r.aprobado).length})</button>
+          <button onClick={() => setVistaActual('promociones')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'promociones' ? 'bg-red-500 text-white shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🎁 Promociones ({promociones.filter(p => !p.aprobada).length})</button>
         </div>
 
         {vistaActual === 'dashboard' && (
@@ -497,8 +527,56 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
+        {/* 🆕 VISTA DE PROMOCIONES */}
+        {vistaActual === 'promociones' && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">🎁 Moderación de Promociones</h3>
+            {promociones.length === 0 ? (
+              <p className="text-navy/60 text-center py-8">No hay promociones registradas.</p>
+            ) : (
+              <div className="space-y-4">
+                {promociones.map((p) => {
+                  const vencida = new Date(p.fecha_fin) < new Date()
+                  return (
+                    <div key={p.id} className={`p-4 rounded-lg border-2 ${
+                      !p.aprobada ? 'bg-dorado/10 border-dorado' :
+                      vencida ? 'bg-gray-100 border-gray-300 opacity-60' :
+                      'bg-green-50 border-green-200'
+                    }`}>
+                      <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
+                        <div>
+                          <p className="font-body font-bold text-navy text-lg">{p.titulo}</p>
+                          <p className="font-body text-xs text-navy/60">
+                            Negocio: <strong>{p.negocios?.nombre || 'Eliminado'}</strong> • Plan: {p.negocios?.plan}
+                          </p>
+                          <p className="font-body text-xs text-navy/60">
+                            Vigencia: {new Date(p.fecha_inicio).toLocaleDateString('es-AR')} al {new Date(p.fecha_fin).toLocaleDateString('es-AR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {vencida && <span className="font-label text-xs px-2 py-1 rounded bg-gray-500 text-white">Vencida</span>}
+                          <span className={`font-label text-xs px-2 py-1 rounded ${p.aprobada ? 'bg-green-500 text-white' : 'bg-yellow-400 text-navy'}`}>
+                            {p.aprobada ? 'Aprobada' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="font-body text-navy/80 text-sm mb-3 bg-white/50 p-3 rounded">{p.descripcion}</p>
+                      <div className="flex gap-2">
+                        {!p.aprobada && !vencida && (
+                          <button onClick={() => aprobarPromo(p.id)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>
+                        )}
+                        <button onClick={() => rechazarPromo(p.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition">🗑️ Eliminar</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* VISTA DE RESEÑAS */}
-        {vistaActual === 'resenas' ? (
+        {vistaActual === 'resenas' && (
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestión de Reseñas</h3>
             {resenas.length === 0 ? (
@@ -533,8 +611,10 @@ function AdminPanel({ onClose }) {
               </div>
             )}
           </div>
-        ) : (
-          /* VISTA DE PENDIENTES / PUBLICADOS */
+        )}
+
+        {/* VISTA DE PENDIENTES / PUBLICADOS */}
+        {(vistaActual === 'pendientes' || vistaActual === 'publicados') && (
           <>
             <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3 rounded-t-xl">
               <span className="font-label text-navy font-bold uppercase tracking-wide text-xs">Filtrar por plan:</span>
@@ -577,6 +657,11 @@ function AdminPanel({ onClose }) {
                                 {sol.suspendido && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded font-label uppercase">Suspendido</span>}
                               </div>
                               <div className="text-xs text-navy/60">{sol.tipo}</div>
+                              {sol.codigo_acceso && (
+                                <div className="text-xs font-mono bg-dorado/20 text-navy px-2 py-1 rounded mt-1 inline-block">
+                                  Código: <strong>{sol.codigo_acceso}</strong>
+                                </div>
+                              )}
                             </td>
                             <td className="p-4">
                               <div className="text-navy">{sol.nombre_contacto || 'No especificado'}</div>

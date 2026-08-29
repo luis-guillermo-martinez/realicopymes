@@ -5,6 +5,9 @@ import FormularioComercio from './FormularioComercio'
 import AdminPanel from './AdminPanel'
 import FichaDetalle from './FichaDetalle'
 import Mapa from './Mapa'
+import DashboardComercio from './DashboardComercio'
+import Promociones from './Promociones' // 🆕 Import de la página de promociones
+
 function HomePage() {
   const [busqueda, setBusqueda] = useState('')
   const [negocios, setNegocios] = useState([])
@@ -68,7 +71,6 @@ function HomePage() {
       )
     }
     if (categoriaSeleccionada) {
-      // Filtrar si la categoría seleccionada está dentro de las categorías del negocio (separadas por coma)
       resultados = resultados.filter(n => {
         const cats = n.categoria ? n.categoria.split(',').map(c => c.trim()) : []
         return cats.includes(categoriaSeleccionada)
@@ -77,7 +79,6 @@ function HomePage() {
     setNegociosFiltrados(ordenarPorPlan(resultados))
   }, [busqueda, categoriaSeleccionada, negocios])
 
-  // Extraer todas las categorías únicas de todos los negocios
   const todasLasCategorias = negocios.flatMap(n => n.categoria ? n.categoria.split(',').map(c => c.trim()) : [])
   const categorias = [...new Set(todasLasCategorias)].filter(c => c !== '')
 
@@ -104,42 +105,31 @@ function HomePage() {
   }
 
   const handleVerFicha = (slug) => {
-  navigate(`/ficha/${slug}`)
-}
+    navigate(`/ficha/${slug}`)
+  }
 
   return (
     <div className="min-h-screen bg-crema flex flex-col font-body">
-            {/* HEADER */}
+      {/* HEADER */}
       <nav className="bg-crema border-b border-navy/10 shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
-            {/* LOGO */}
             <div className="flex items-center flex-shrink-0">
               <div onClick={volverAlInicio} className="cursor-pointer flex items-center">
                 <img src="/logo.png" alt="MiPin" className="h-10 md:h-12 w-auto" />
               </div>
             </div>
             
-            {/* MENÚ ESCRITORIO (oculto en móvil) */}
             <div className="hidden md:flex items-center space-x-6 lg:space-x-8 font-body font-semibold">
               <a href="#" onClick={volverAlInicio} className="text-navy hover:text-dorado transition cursor-pointer">Inicio</a>
               <a href="#categorias" className="text-navy hover:text-dorado transition">Categorías</a>
+              <a href="/promociones" className="text-navy hover:text-dorado transition">Promociones</a>
               <a href="#planes" className="text-navy hover:text-dorado transition">Planes</a>
               <a href="/mapa" className="text-navy hover:text-dorado transition">Mapa</a>
-              <button 
-                onClick={() => setMostrarFormulario(true)} 
-                className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition"
-              >
-                Publicar
-              </button>
+              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-6 py-2 rounded-lg font-bold hover:bg-navy-dark transition">Publicar</button>
             </div>
 
-            {/* BOTÓN MENÚ MÓVIL (hamburguesa) */}
-            <button 
-              onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} 
-              className="md:hidden flex items-center justify-center p-2 text-navy bg-crema border border-navy/10 rounded-lg hover:bg-navy/5 transition"
-              aria-label="Abrir menú"
-            >
+            <button onClick={() => setMostrarMenuMovil(!mostrarMenuMovil)} className="md:hidden flex items-center justify-center p-2 text-navy bg-crema border border-navy/10 rounded-lg hover:bg-navy/5 transition" aria-label="Abrir menú">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mostrarMenuMovil ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -150,44 +140,15 @@ function HomePage() {
             </button>
           </div>
 
-          {/* MENÚ DESPLEGABLE MÓVIL */}
           {mostrarMenuMovil && (
             <div className="md:hidden mt-4 pb-4 border-t border-navy/10 pt-4 animate-fade-in">
               <div className="flex flex-col space-y-3 font-body font-semibold">
-                <a 
-                  href="#" 
-                  onClick={() => { volverAlInicio(); setMostrarMenuMovil(false); }} 
-                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
-                >
-                  Inicio
-                </a>
-                <a 
-                  href="#categorias" 
-                  onClick={() => setMostrarMenuMovil(false)} 
-                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
-                >
-                  Categorías
-                </a>
-                <a 
-                  href="#planes" 
-                  onClick={() => setMostrarMenuMovil(false)} 
-                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
-                >
-                  Planes
-                </a>
-                <a 
-                  href="/mapa" 
-                  onClick={() => setMostrarMenuMovil(false)} 
-                  className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5"
-                >
-                  Mapa
-                </a>
-                <button 
-                  onClick={() => { setMostrarFormulario(true); setMostrarMenuMovil(false); }} 
-                  className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center mt-2"
-                >
-                  Publicar
-                </button>
+                <a href="#" onClick={() => { volverAlInicio(); setMostrarMenuMovil(false); }} className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5">Inicio</a>
+                <a href="#categorias" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5">Categorías</a>
+                <a href="/promociones" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5">Promociones</a>
+                <a href="#planes" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5">Planes</a>
+                <a href="/mapa" onClick={() => setMostrarMenuMovil(false)} className="text-navy hover:text-dorado transition py-2 px-2 rounded hover:bg-navy/5">Mapa</a>
+                <button onClick={() => { setMostrarFormulario(true); setMostrarMenuMovil(false); }} className="bg-navy text-crema px-6 py-3 rounded-lg font-bold hover:bg-navy-dark transition text-center mt-2">Publicar</button>
               </div>
             </div>
           )}
@@ -209,9 +170,7 @@ function HomePage() {
               onChange={(e) => setBusqueda(e.target.value)}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">
-              Buscar
-            </button>
+            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">Buscar</button>
           </div>
         </div>
       </header>
@@ -249,9 +208,7 @@ function HomePage() {
       {!categoriaSeleccionada && !busqueda && (
         <section id="categorias" className="container mx-auto px-4 py-16">
           <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
-          <p className="font-body text-navy/70 text-center mb-12 max-w-2xl mx-auto text-lg">
-            Encontrá comercios, servicios, profesionales, productores y emprendimientos en Realicó y la región.
-          </p>
+          <p className="font-body text-navy/70 text-center mb-12 max-w-2xl mx-auto text-lg">Encontrá comercios, servicios, profesionales, productores y emprendimientos en Realicó y la región.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {categorias.map((categoria, index) => (
               <div key={index} onClick={() => handleCategoriaClick(categoria)} className="bg-white p-8 rounded-lg shadow-md hover:shadow-2xl hover:-translate-y-2 transition duration-300 text-center border-2 border-transparent hover:border-dorado cursor-pointer group">
@@ -308,13 +265,13 @@ function HomePage() {
               <button onClick={volverAlInicio} className="bg-navy text-white px-6 py-3 rounded-lg font-body font-bold hover:bg-navy-light transition">Ver todas las categorías</button>
             </div>
           ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {negociosFiltrados.map((n) => {
                 const esGratuito = n.plan === 'Gratuito';
                 return (
                   <div 
                     key={n.id} 
-                    onClick={() => !esGratuito && handleVerFicha(n.id)} 
+                    onClick={() => !esGratuito && handleVerFicha(n.slug)} 
                     className={`bg-white p-6 rounded-lg shadow-md transition duration-300 border-2 ${
                       esGratuito 
                         ? 'border-gray-200' 
@@ -325,7 +282,6 @@ function HomePage() {
                             : 'border-navy/10 cursor-pointer hover:shadow-xl'
                     }`}
                   >
-                    {/* Badge solo para planes pagos */}
                     {!esGratuito && n.plan && (
                       <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
                         n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
@@ -336,7 +292,6 @@ function HomePage() {
                       </span>
                     )}
 
-                    {/* Foto solo para planes pagos */}
                     {!esGratuito && n.foto_portada && (
                       <div className="flex justify-center mb-4">
                         <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
@@ -346,19 +301,18 @@ function HomePage() {
                     <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
                     <p className="font-label text-dorado font-semibold text-sm mb-3 uppercase tracking-wide">{n.categoria}</p>
 
-                    {/* Contenido condicional: Dirección para gratuitos, Descripción + Botón para pagos */}
                     {esGratuito ? (
-  <div className="space-y-2">
-    {n.direccion && (
-      <p className="font-body text-navy/70 text-base flex items-center gap-2">
-        <span>📍</span> {n.direccion}
-      </p>
-    )}
-    <p className="font-body text-navy/40 text-xs flex items-center gap-1">
-      <span></span> {n.vistas || 0} vistas
-    </p>
-  </div>
-) : (
+                      <div className="space-y-2">
+                        {n.direccion && (
+                          <p className="font-body text-navy/70 text-base flex items-center gap-2">
+                            <span>📍</span> {n.direccion}
+                          </p>
+                        )}
+                        <p className="font-body text-navy/40 text-xs flex items-center gap-1">
+                          <span>👁</span> {n.vistas || 0} vistas
+                        </p>
+                      </div>
+                    ) : (
                       <>
                         {n.tipo && <p className="font-body text-navy/60 text-xs mb-3">{n.tipo}</p>}
                         <p className="font-body text-navy/70 text-base mb-4 line-clamp-2">{n.descripcion}</p>
@@ -376,115 +330,70 @@ function HomePage() {
       )}
 
       {/* PLANES */}
-{!categoriaSeleccionada && !busqueda && (
-  <section id="planes" className="bg-navy text-white py-16">
-    <div className="container mx-auto px-4">
-      <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
-      <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">
-        Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-        {/* PLAN GRATUITO */}
-        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-          <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
-          <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
-          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-            <li>✓ Nombre y categorías</li>
-            <li>✓ Dirección</li>
-            <li>✓ Teléfono (texto)</li>
-          </ul>
-          <button
-            onClick={() => {
-              setMostrarFormulario(true)
-              setPlanSeleccionado('Gratuito')
-            }}
-            className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-pointer text-sm hover:bg-navy/30 transition mt-auto"
-          >
-            Seleccionar
-          </button>
-        </div>
-
-        {/* PLAN ESTÁNDAR */}
-        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-          <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
-          <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
-          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-            <li>✓ Todo lo del Gratuito</li>
-            <li>✓ Botón WhatsApp</li>
-            <li>✓ 1 foto de portada</li>
-            <li>✓ Horario</li>
-          </ul>
-          <button
-            onClick={() => {
-              setMostrarFormulario(true)
-              setPlanSeleccionado('Estándar')
-            }}
-            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
-          >
-            Seleccionar
-          </button>
-        </div>
-
-        {/* PLAN DESTACADO */}
-        <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro flex flex-col">
-          <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
-          <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
-          <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
-          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-            <li>✓ Todo lo del Estándar</li>
-            <li>✓ Galería (3 fotos)</li>
-            <li>✓ Redes sociales</li>
-            <li>✓ Google Maps</li>
-            <li>✓ Badge "Destacado"</li>
-          </ul>
-          <button
-            onClick={() => {
-              setMostrarFormulario(true)
-              setPlanSeleccionado('Destacado')
-            }}
-            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
-          >
-            Seleccionar
-          </button>
-        </div>
-
-        {/* PLAN PATROCINADO */}
-        <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-          <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
-          <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
-          <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-            <li>✓ Todo lo del Destacado</li>
-            <li>✓ Galería + video</li>
-            <li>✓ Banner en home</li>
-            <li>✓ Logo en header</li>
-            <li>✓ Botón "Cómo llegar"</li>
-          </ul>
-          <button
-            onClick={() => {
-              setMostrarFormulario(true)
-              setPlanSeleccionado('Patrocinado')
-            }}
-            className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto"
-          >
-            Seleccionar
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-)}
+      {!categoriaSeleccionada && !busqueda && (
+        <section id="planes" className="bg-navy text-white py-16">
+          <div className="container mx-auto px-4">
+            <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
+            <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
+                <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
+                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+                  <li>✓ Nombre y categorías</li>
+                  <li>✓ Dirección</li>
+                  <li>✓ Teléfono (texto)</li>
+                </ul>
+                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Gratuito'); }} className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-pointer text-sm hover:bg-navy/30 transition mt-auto">Seleccionar</button>
+              </div>
+              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
+                <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
+                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+                  <li>✓ Todo lo del Gratuito</li>
+                  <li>✓ Botón WhatsApp</li>
+                  <li>✓ 1 foto de portada</li>
+                  <li>✓ Horario</li>
+                </ul>
+                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Estándar'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+              </div>
+              <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro flex flex-col">
+                <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
+                <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
+                <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
+                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+                  <li>✓ Todo lo del Estándar</li>
+                  <li>✓ Galería (3 fotos)</li>
+                  <li>✓ Redes sociales</li>
+                  <li>✓ Google Maps</li>
+                  <li>✓ Badge "Destacado"</li>
+                </ul>
+                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Destacado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+              </div>
+              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
+                <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
+                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
+                  <li>✓ Todo lo del Destacado</li>
+                  <li>✓ Galería + video</li>
+                  <li>✓ Banner en home</li>
+                  <li>✓ Logo en header</li>
+                  <li>✓ Botón "Cómo llegar"</li>
+                </ul>
+                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Patrocinado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       {!categoriaSeleccionada && !busqueda && (
         <section className="bg-dorado py-16">
           <div className="container mx-auto px-4 text-center">
             <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">¿Tenés algo que ofrecer?</h2>
-            <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">
-              Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.
-            </p>
-            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">
-              ¡Quiero Publicar!
-            </button>
+            <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.</p>
+            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">¡Quiero Publicar!</button>
             <p className="font-body text-navy/60 text-sm mt-4">Es gratis y toma menos de 2 minutos</p>
           </div>
         </section>
@@ -493,22 +402,30 @@ function HomePage() {
       {/* FOOTER */}
       <footer className="bg-navy-dark text-crema/80 py-12 mt-auto">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left">
+            <div className="md:col-span-2">
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">MiPin</h3>
               <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
             </div>
             <div>
-              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Enlaces Rápidos</h3>
+              <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Enlaces</h3>
               <ul className="space-y-2 text-sm font-body">
-                <li><a href="#" onClick={volverAlInicio} className="hover:text-dorado-claro transition cursor-pointer">Inicio</a></li>
+                <li><button onClick={volverAlInicio} className="hover:text-dorado-claro transition">Inicio</button></li>
                 <li><a href="#categorias" className="hover:text-dorado-claro transition">Categorías</a></li>
+                <li><a href="/promociones" className="hover:text-dorado-claro transition">Promociones</a></li>
                 <li><button onClick={() => setMostrarFormulario(true)} className="hover:text-dorado-claro transition">Publicar</button></li>
               </ul>
             </div>
             <div>
-              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">Contacto</h3>
-              <p className="font-body text-crema/60 text-sm">¿Tenés algo que ofrecer?<br />Sumate al directorio y llegá a más clientes.</p>
+              <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Comercios</h3>
+              <ul className="space-y-2 text-sm font-body">
+                <li>
+                  <a href="/dashboard" className="text-crema/80 hover:text-dorado-claro transition flex items-center justify-center md:justify-start gap-2">
+                    <span>🔒</span> Accedé a tu Panel
+                  </a>
+                </li>
+                <li className="text-crema/40 text-xs mt-2">Usá tu email y código de acceso para editar tus fotos, ver estadísticas y cargar promos.</li>
+              </ul>
             </div>
           </div>
           <div className="border-t border-crema/20 pt-8 text-center text-sm font-body text-crema/60">
@@ -530,6 +447,8 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/ficha/:slug" element={<FichaDetalle />} />
       <Route path="/mapa" element={<Mapa />} />
+      <Route path="/dashboard" element={<DashboardComercio />} />
+      <Route path="/promociones" element={<Promociones />} /> {/* 🆕 Ruta pública de promociones */}
     </Routes>
   )
 }

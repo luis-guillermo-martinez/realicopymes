@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from './supabase'
 
 function FichaDetalle() {
-  const { slug } = useParams() // 🆕 Usamos slug en lugar de id
+  const { slug } = useParams() 
   const navigate = useNavigate()
   
   const [negocio, setNegocio] = useState(null)
@@ -20,12 +20,11 @@ function FichaDetalle() {
 
   useEffect(() => {
     cargarFicha()
-  }, [slug]) // 🆕 Dependencia del slug
+  }, [slug]) 
 
   const cargarFicha = async () => {
     try {
       setCargando(true)
-      // 🆕 Buscamos por slug en lugar de id
       const { data, error } = await supabase
         .from('negocios')
         .select('*')
@@ -42,7 +41,7 @@ function FichaDetalle() {
         .update({ vistas: (data.vistas || 0) + 1 })
         .eq('id', data.id)
 
-      // 🆕 Cargar reseñas aprobadas para este negocio
+      // Cargar reseñas aprobadas para este negocio
       const { data: dataResenas } = await supabase
         .from('resenas')
         .select('*')
@@ -147,7 +146,6 @@ function FichaDetalle() {
   const esDestacado = plan === 'Destacado'
   const esPatrocinado = plan === 'Patrocinado'
   
-  // 🆕 Galería: solo fotos subidas. Destacado=3, Patrocinado=5
   const fotosGaleria = galeria.slice(0, esPatrocinado ? 5 : 3)
   
   const tieneFoto = esEstándar || esDestacado || esPatrocinado
@@ -303,10 +301,36 @@ function FichaDetalle() {
                     <a href={`mailto:${negocio.email}?subject=Consulta desde MiPin - ${negocio.nombre}`} className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">✉️ Enviar Email</a>
                   </div>
                 )}
+                
+                {/* 🆕 SECCIÓN COMPARTIR FICHA */}
+                <div className="border-t border-navy/10 pt-6 mt-6">
+                  <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Compartir esta ficha</p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => {
+                        const texto = `Mirá ${negocio.nombre} en MiPin: ${window.location.href}`
+                        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+                      }}
+                      className="flex items-center justify-center gap-2 bg-green-500 text-white py-2 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition"
+                    >
+                      <span>📱</span> Compartir por WhatsApp
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href)
+                        alert('¡Enlace copiado al portapapeles!')
+                      }}
+                      className="flex items-center justify-center gap-2 bg-navy/10 text-navy py-2 rounded-lg font-body font-bold text-sm hover:bg-navy/20 transition"
+                    >
+                      <span>🔗</span> Copiar enlace
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </section>
 
-            {/* 🆕 SECCIÓN RESEÑAS */}
+            {/* SECCIÓN RESEÑAS */}
             <section className="bg-white p-6 rounded-xl shadow-md">
               <h2 className="font-display text-3xl text-navy mb-4 tracking-wide">Reseñas</h2>
               {resenas.length > 0 ? (
@@ -457,9 +481,38 @@ function FichaDetalle() {
         </div>
       </main>
 
+      {/* 🆕 FOOTER ACTUALIZADO CON ENLACE A DASHBOARD */}
       <footer className="bg-navy-dark text-crema/80 py-8 mt-auto">
-        <div className="container mx-auto px-4 text-center">
-          <p className="font-body text-sm text-crema/60">© 2026 MiPin. A un pin de distancia.</p>
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left">
+            <div className="md:col-span-2">
+              <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">MiPin</h3>
+              <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
+            </div>
+            <div>
+              <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Enlaces</h3>
+              <ul className="space-y-2 text-sm font-body">
+                <li><button onClick={() => navigate('/')} className="hover:text-dorado-claro transition">Inicio</button></li>
+                <li><button onClick={() => navigate('/')} className="hover:text-dorado-claro transition">Categorías</button></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Comercios</h3>
+              <ul className="space-y-2 text-sm font-body">
+                <li>
+                  <a href="/dashboard" className="text-crema/80 hover:text-dorado-claro transition flex items-center justify-center md:justify-start gap-2">
+                    <span>🔒</span> Accedé a tu Panel
+                  </a>
+                </li>
+                <li className="text-crema/40 text-xs mt-2">
+                  Usá tu email y código de acceso para editar tus fotos, ver estadísticas y cargar promos.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-crema/20 pt-8 text-center text-sm font-body text-crema/60">
+            <p>© 2026 MiPin. A un pin de distancia.</p>
+          </div>
         </div>
       </footer>
     </div>
