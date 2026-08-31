@@ -6,7 +6,20 @@ import AdminPanel from './AdminPanel'
 import FichaDetalle from './FichaDetalle'
 import Mapa from './Mapa'
 import DashboardComercio from './DashboardComercio'
-import Promociones from './Promociones' // 🆕 Import de la página de promociones
+import Promociones from './Promociones'
+
+// 🆕 FÓRMULA DE HAVERSINE PARA CALCULAR DISTANCIA EN KM
+const calcularDistancia = (lat1, lon1, lat2, lon2) => {
+  const R = 6371 // Radio de la Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
+}
 
 function HomePage() {
   const [busqueda, setBusqueda] = useState('')
@@ -19,6 +32,12 @@ function HomePage() {
   const [mostrarAdmin, setMostrarAdmin] = useState(false)
   const [mostrarMenuMovil, setMostrarMenuMovil] = useState(false)
   const [planSeleccionado, setPlanSeleccionado] = useState('Gratuito')
+  
+  // 🆕 Estados para "Cerca de mí"
+  const [cercaDeMi, setCercaDeMi] = useState(false)
+  const [ubicacionUsuario, setUbicacionUsuario] = useState(null)
+  const [cargandoUbicacion, setCargandoUbicacion] = useState(false)
+  
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -60,8 +79,40 @@ function HomePage() {
     })
   }
 
+  // 🆕 FUNCIÓN PARA ACTIVAR GEOLOCALIZACIÓN
+  const activarCercaDeMi = () => {
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización.')
+      return
+    }
+    setCargandoUbicacion(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUbicacionUsuario({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        })
+        setCercaDeMi(true)
+        setCategoriaSeleccionada(null) // Limpiar filtros al activar
+        setBusqueda('')
+        setCargandoUbicacion(false)
+      },
+      (error) => {
+        alert('No se pudo obtener tu ubicación. Asegúrate de dar permisos de ubicación en tu navegador/celular.')
+        setCargandoUbicacion(false)
+      }
+    )
+  }
+
+  const desactivarCercaDeMi = () => {
+    setCercaDeMi(false)
+    setUbicacionUsuario(null)
+  }
+
   useEffect(() => {
     let resultados = negocios
+
+    // 1. Filtro por búsqueda
     if (busqueda) {
       resultados = resultados.filter(n =>
         n.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -70,14 +121,32 @@ function HomePage() {
         (n.tipo && n.tipo.toLowerCase().includes(busqueda.toLowerCase()))
       )
     }
+    
+    // 2. Filtro por categoría
     if (categoriaSeleccionada) {
       resultados = resultados.filter(n => {
         const cats = n.categoria ? n.categoria.split(',').map(c => c.trim()) : []
         return cats.includes(categoriaSeleccionada)
       })
     }
-    setNegociosFiltrados(ordenarPorPlan(resultados))
-  }, [busqueda, categoriaSeleccionada, negocios])
+
+    // 3. 🆕 ORDENAMIENTO POR DISTANCIA (si está activo)
+    let resultadosFinales = [...resultados]
+    if (cercaDeMi && ubicacionUsuario) {
+      resultadosFinales = resultadosFinales.map(n => {
+        if (n.latitud && n.longitud) {
+          const dist = calcularDistancia(ubicacionUsuario.lat, ubicacionUsuario.lng, n.latitud, n.longitud)
+          return { ...n, distancia: dist }
+        }
+        return { ...n, distancia: 9999 } // Sin coordenadas, va al final
+      }).sort((a, b) => a.distancia - b.distancia)
+    } else {
+      // Orden normal por plan si no está "Cerca de mí"
+      resultadosFinales = ordenarPorPlan(resultadosFinales)
+    }
+
+    setNegociosFiltrados(resultadosFinales)
+  }, [busqueda, categoriaSeleccionada, negocios, cercaDeMi, ubicacionUsuario])
 
   const todasLasCategorias = negocios.flatMap(n => n.categoria ? n.categoria.split(',').map(c => c.trim()) : [])
   const categorias = [...new Set(todasLasCategorias)].filter(c => c !== '')
@@ -91,6 +160,7 @@ function HomePage() {
     'border-navy/20'
 
   const handleCategoriaClick = (categoria) => {
+    desactivarCercaDeMi() // Desactivar cerca de mí si elige categoría
     setCategoriaSeleccionada(categoria)
     setTimeout(() => {
       const element = document.getElementById('resultados-negocios')
@@ -99,6 +169,7 @@ function HomePage() {
   }
 
   const volverAlInicio = () => {
+    desactivarCercaDeMi()
     setCategoriaSeleccionada(null)
     setBusqueda('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -156,109 +227,75 @@ function HomePage() {
       </nav>
 
       {/* HERO */}
-      <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-20">
+      <header className="bg-gradient-to-b from-navy to-navy-dark text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="font-display text-5xl md:text-7xl mb-4 tracking-wide">A un pin de distancia</h1>
-          <p className="font-body text-xl md:text-2xl mb-10 text-dorado-claro max-w-2xl mx-auto font-medium">
-            Conectamos a la comunidad con los mejores servicios y profesionales locales de La Pampa.
+          <p className="font-body text-xl md:text-2xl mb-8 text-dorado-claro max-w-2xl mx-auto font-medium">
+            Conectamos a la comunidad con los mejores servicios y profesionales locales.
           </p>
+          
           <div className="max-w-3xl mx-auto bg-crema p-3 rounded-lg shadow-2xl flex flex-col md:flex-row gap-2">
             <input
               type="text"
-              placeholder="¿Qué buscás? Ejemplo: Panadería, Abogado, Miel, Diseño..."
+              placeholder="¿Qué buscás? Ejemplo: Panadería, Abogado, Miel..."
               value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              onChange={(e) => { setBusqueda(e.target.value); desactivarCercaDeMi(); }}
               className="flex-1 p-4 rounded-md text-navy text-lg focus:outline-none focus:ring-2 focus:ring-dorado font-body"
             />
-            <button className="bg-dorado text-navy font-body font-bold py-4 px-10 rounded-md hover:bg-dorado-claro transition text-lg">Buscar</button>
+            
+            {/* 🆕 BOTÓN CERCA DE MÍ */}
+            <button 
+              onClick={cercaDeMi ? desactivarCercaDeMi : activarCercaDeMi}
+              disabled={cargandoUbicacion}
+              className={`flex items-center justify-center gap-2 px-6 py-4 rounded-md font-body font-bold text-lg transition whitespace-nowrap ${
+                cercaDeMi 
+                  ? 'bg-green-600 text-white hover:bg-green-700' 
+                  : 'bg-dorado text-navy hover:bg-dorado-claro'
+              }`}
+            >
+              {cargandoUbicacion ? (
+                'Ubicando...'
+              ) : cercaDeMi ? (
+                <>📍 Mostrando cercanos</>
+              ) : (
+                <>📍 Cerca de mí</>
+              )}
+            </button>
           </div>
+          {cercaDeMi && (
+            <p className="text-crema/80 text-sm mt-3 animate-pulse">
+              Ordenado por distancia desde tu ubicación actual.
+            </p>
+          )}
         </div>
       </header>
 
-      {/* PATROCINADORES */}
-      {negociosPatrocinados.length > 0 && (
-        <section className="bg-dorado/10 py-16 border-b border-dorado/20">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <span className="font-label bg-navy text-crema px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Patrocinadores</span>
-              <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Empresas Destacadas</h2>
-              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">Nuestros principales patrocinadores te esperan.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {negociosPatrocinados.map((n) => (
-                <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
-                  <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
-                  {n.foto_portada && (
-                    <div className="flex justify-center mb-4">
-                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
-                    </div>
-                  )}
-                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
-                  <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
-                  <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
-                  <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      {/* AVISO SI NO HAY RESULTADOS POR CERCANÍA */}
+      {cercaDeMi && negociosFiltrados.length > 0 && negociosFiltrados[0].distancia === 9999 && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 container mx-auto mt-4 rounded">
+          <p className="font-bold">Nota:</p>
+          <p>Algunos negocios no tienen coordenadas registradas y aparecen al final de la lista.</p>
+        </div>
       )}
 
-      {/* CATEGORÍAS */}
-      {!categoriaSeleccionada && !busqueda && (
-        <section id="categorias" className="container mx-auto px-4 py-16">
-          <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
-          <p className="font-body text-navy/70 text-center mb-12 max-w-2xl mx-auto text-lg">Encontrá comercios, servicios, profesionales, productores y emprendimientos en Realicó y la región.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categorias.map((categoria, index) => (
-              <div key={index} onClick={() => handleCategoriaClick(categoria)} className="bg-white p-8 rounded-lg shadow-md hover:shadow-2xl hover:-translate-y-2 transition duration-300 text-center border-2 border-transparent hover:border-dorado cursor-pointer group">
-                <h3 className="font-label font-bold text-navy text-xl mb-3 group-hover:text-dorado transition uppercase tracking-wide">{categoria}</h3>
-                <p className="font-body text-dorado font-medium text-sm">Ver más →</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* DESTACADOS */}
-      {!categoriaSeleccionada && !busqueda && negociosDestacados.length > 0 && (
-        <section className="bg-papel py-16 border-t border-dorado/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <span className="font-label bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Destacados</span>
-              <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Negocios y Servicios Destacados</h2>
-              <p className="font-body text-navy/70 max-w-2xl mx-auto text-lg">Quienes más invierten en su visibilidad. ¡Apoyá el desarrollo local!</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {negociosDestacados.map((n) => (
-                <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
-                  <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
-                  {n.foto_portada && (
-                    <div className="flex justify-center mb-4">
-                      <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
-                    </div>
-                  )}
-                  <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
-                  <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
-                  <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
-                  <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* RESULTADOS */}
-      {(categoriaSeleccionada || busqueda) && (
+      {/* RESULTADOS (Se muestra siempre si hay búsqueda, categoría o "cerca de mí" activo) */}
+      {(busqueda || categoriaSeleccionada || cercaDeMi) && (
         <section id="resultados-negocios" className="container mx-auto px-4 py-16 flex-grow">
-          <div className="mb-8">
-            <button onClick={volverAlInicio} className="font-body text-navy hover:text-dorado font-medium mb-4 flex items-center">← Volver al inicio</button>
-            <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">
-              {categoriaSeleccionada ? `Resultados en "${categoriaSeleccionada}"` : `Resultados para "${busqueda}"`}
-            </h2>
-            <p className="font-body text-navy/70 text-lg">{negociosFiltrados.length} resultado{negociosFiltrados.length !== 1 ? 's' : ''}</p>
+          <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
+            <div>
+              <button onClick={volverAlInicio} className="font-body text-navy hover:text-dorado font-medium mb-2 flex items-center">← Volver al inicio</button>
+              <h2 className="font-display text-3xl md:text-4xl text-navy tracking-wide">
+                {cercaDeMi ? '📍 Negocios cerca de ti' : categoriaSeleccionada ? `Resultados en "${categoriaSeleccionada}"` : `Resultados para "${busqueda}"`}
+              </h2>
+              <p className="font-body text-navy/70 text-lg">{negociosFiltrados.length} resultado{negociosFiltrados.length !== 1 ? 's' : ''}</p>
+            </div>
+            {cercaDeMi && (
+              <button onClick={desactivarCercaDeMi} className="text-sm text-navy/60 hover:text-navy underline">
+                Ver todos los negocios
+              </button>
+            )}
           </div>
+
           {negociosFiltrados.length === 0 ? (
             <div className="text-center py-12">
               <p className="font-body text-navy/70 text-lg mb-4">No se encontraron resultados.</p>
@@ -272,7 +309,7 @@ function HomePage() {
                   <div 
                     key={n.id} 
                     onClick={() => !esGratuito && handleVerFicha(n.slug)} 
-                    className={`bg-white p-6 rounded-lg shadow-md transition duration-300 border-2 ${
+                    className={`bg-white p-6 rounded-lg shadow-md transition duration-300 border-2 relative ${
                       esGratuito 
                         ? 'border-gray-200' 
                         : n.plan === 'Patrocinado' 
@@ -282,6 +319,13 @@ function HomePage() {
                             : 'border-navy/10 cursor-pointer hover:shadow-xl'
                     }`}
                   >
+                    {/* 🆕 BADGE DE DISTANCIA */}
+                    {cercaDeMi && n.distancia !== undefined && n.distancia < 9999 && (
+                      <div className="absolute -top-3 right-4 bg-navy text-crema text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
+                        📍 a {n.distancia.toFixed(1)} km
+                      </div>
+                    )}
+
                     {!esGratuito && n.plan && (
                       <span className={`font-label inline-block text-xs px-2 py-1 rounded uppercase tracking-wider mb-3 ${
                         n.plan === 'Patrocinado' ? 'bg-navy text-crema' :
@@ -329,74 +373,116 @@ function HomePage() {
         </section>
       )}
 
-      {/* PLANES */}
-      {!categoriaSeleccionada && !busqueda && (
-        <section id="planes" className="bg-navy text-white py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
-            <p className="font-body text-center text-dorado-claro mb-12 max-w-2xl mx-auto text-lg">Para comercios, profesionales, productores y emprendedores. Hay una opción perfecta para vos.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-                  <li>✓ Nombre y categorías</li>
-                  <li>✓ Dirección</li>
-                  <li>✓ Teléfono (texto)</li>
-                </ul>
-                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Gratuito'); }} className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-pointer text-sm hover:bg-navy/30 transition mt-auto">Seleccionar</button>
+      {/* SECCIONES POR DEFECTO (Solo si NO hay búsqueda, categoría ni "cerca de mí") */}
+      {!busqueda && !categoriaSeleccionada && !cercaDeMi && (
+        <>
+          {/* PATROCINADORES */}
+          {negociosPatrocinados.length > 0 && (
+            <section className="bg-dorado/10 py-16 border-b border-dorado/20">
+              <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                  <span className="font-label bg-navy text-crema px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Patrocinadores</span>
+                  <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Empresas Destacadas</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {negociosPatrocinados.map((n) => (
+                    <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-navy hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
+                      <div className="absolute top-0 right-0 bg-navy text-crema font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Patrocinador</div>
+                      {n.foto_portada && (
+                        <div className="flex justify-center mb-4">
+                          <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
+                        </div>
+                      )}
+                      <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
+                      <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
+                      <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
+                      <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-                  <li>✓ Todo lo del Gratuito</li>
-                  <li>✓ Botón WhatsApp</li>
-                  <li>✓ 1 foto de portada</li>
-                  <li>✓ Horario</li>
-                </ul>
-                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Estándar'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+            </section>
+          )}
+
+          {/* CATEGORÍAS */}
+          <section id="categorias" className="container mx-auto px-4 py-16">
+            <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 text-center tracking-wide">Explora por Categoría</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {categorias.map((categoria, index) => (
+                <div key={index} onClick={() => handleCategoriaClick(categoria)} className="bg-white p-8 rounded-lg shadow-md hover:shadow-2xl hover:-translate-y-2 transition duration-300 text-center border-2 border-transparent hover:border-dorado cursor-pointer group">
+                  <h3 className="font-label font-bold text-navy text-xl mb-3 group-hover:text-dorado transition uppercase tracking-wide">{categoria}</h3>
+                  <p className="font-body text-dorado font-medium text-sm">Ver más →</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* DESTACADOS */}
+          {negociosDestacados.length > 0 && (
+            <section className="bg-papel py-16 border-t border-dorado/30">
+              <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                  <span className="font-label bg-dorado text-navy px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">Destacados</span>
+                  <h2 className="font-display text-4xl md:text-5xl text-navy mt-4 mb-4 tracking-wide">Negocios y Servicios Destacados</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {negociosDestacados.map((n) => (
+                    <div key={n.id} onClick={() => handleVerFicha(n.slug)} className="bg-white p-8 rounded-xl shadow-lg border-2 border-dorado hover:shadow-2xl transition duration-300 relative overflow-hidden cursor-pointer">
+                      <div className="absolute top-0 right-0 bg-dorado text-navy font-label font-bold text-xs px-4 py-1 rounded-bl-lg uppercase tracking-wider">Destacado</div>
+                      {n.foto_portada && (
+                        <div className="flex justify-center mb-4">
+                          <img src={n.foto_portada} alt={n.nombre} className={`w-24 h-24 md:w-28 md:h-28 object-cover rounded-full border-4 shadow-md ${bordeFoto(n)}`} />
+                        </div>
+                      )}
+                      <h3 className="font-display text-navy text-3xl mb-2 tracking-wide">{n.nombre}</h3>
+                      <p className="font-label text-dorado font-semibold text-sm mb-4 uppercase tracking-wide">{n.categoria}</p>
+                      <p className="font-body text-navy/70 text-base mb-6 line-clamp-2">{n.descripcion}</p>
+                      <button className="w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Ver ficha completa →</button>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro flex flex-col">
-                <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
-                <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-                  <li>✓ Todo lo del Estándar</li>
-                  <li>✓ Galería (3 fotos)</li>
-                  <li>✓ Redes sociales</li>
-                  <li>✓ Google Maps</li>
-                  <li>✓ Badge "Destacado"</li>
-                </ul>
-                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Destacado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
-              </div>
-              <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
-                <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
-                <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
-                <ul className="space-y-2 mb-6 font-body text-sm flex-grow">
-                  <li>✓ Todo lo del Destacado</li>
-                  <li>✓ Galería + video</li>
-                  <li>✓ Banner en home</li>
-                  <li>✓ Logo en header</li>
-                  <li>✓ Botón "Cómo llegar"</li>
-                </ul>
-                <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Patrocinado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+            </section>
+          )}
+
+          {/* PLANES */}
+          <section id="planes" className="bg-navy text-white py-16">
+            <div className="container mx-auto px-4">
+              <h2 className="font-display text-4xl md:text-5xl text-center mb-4 tracking-wide">Elegí tu Plan</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                  <h3 className="font-display text-2xl mb-2 tracking-wide">Gratuito</h3>
+                  <p className="font-body text-navy/70 mb-4 font-semibold">$0/mes</p>
+                  <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Gratuito'); }} className="w-full bg-navy/20 text-navy py-2 rounded-lg font-body font-bold cursor-pointer text-sm hover:bg-navy/30 transition mt-auto">Seleccionar</button>
+                </div>
+                <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                  <h3 className="font-display text-2xl mb-2 tracking-wide">Estándar</h3>
+                  <p className="font-body text-navy/70 mb-4 font-semibold">$10.000/mes</p>
+                  <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Estándar'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+                </div>
+                <div className="bg-dorado text-navy p-6 rounded-xl shadow-2xl transform scale-105 border-4 border-dorado-claro flex flex-col">
+                  <div className="font-label bg-navy text-crema text-center py-1 rounded mb-3 font-bold uppercase tracking-wider text-xs">Más Popular</div>
+                  <h3 className="font-display text-2xl mb-2 tracking-wide">Destacado</h3>
+                  <p className="font-body text-navy/80 mb-4 font-semibold">$25.000/mes</p>
+                  <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Destacado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+                </div>
+                <div className="bg-crema text-navy p-6 rounded-xl shadow-lg flex flex-col">
+                  <h3 className="font-display text-2xl mb-2 tracking-wide">Patrocinado</h3>
+                  <p className="font-body text-navy/70 mb-4 font-semibold">$75.000/mes</p>
+                  <button onClick={() => { setMostrarFormulario(true); setPlanSeleccionado('Patrocinado'); }} className="w-full bg-navy text-crema py-2 rounded-lg font-body font-bold hover:bg-navy-dark transition text-sm mt-auto">Seleccionar</button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
 
-      {/* CTA */}
-      {!categoriaSeleccionada && !busqueda && (
-        <section className="bg-dorado py-16">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">¿Tenés algo que ofrecer?</h2>
-            <p className="font-body text-navy/80 text-xl mb-8 max-w-2xl mx-auto">Sumá tu comercio, servicio, profesión, producto local o emprendimiento al directorio más importante de Realicó.</p>
-            <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">¡Quiero Publicar!</button>
-            <p className="font-body text-navy/60 text-sm mt-4">Es gratis y toma menos de 2 minutos</p>
-          </div>
-        </section>
+          {/* CTA */}
+          <section className="bg-dorado py-16">
+            <div className="container mx-auto px-4 text-center">
+              <h2 className="font-display text-4xl md:text-5xl text-navy mb-4 tracking-wide">¿Tenés algo que ofrecer?</h2>
+              <button onClick={() => setMostrarFormulario(true)} className="bg-navy text-crema px-10 py-4 rounded-lg font-body font-bold text-xl hover:bg-navy-dark transition shadow-lg">¡Quiero Publicar!</button>
+            </div>
+          </section>
+        </>
       )}
 
       {/* FOOTER */}
@@ -405,7 +491,7 @@ function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left">
             <div className="md:col-span-2">
               <h3 className="font-display text-dorado text-2xl mb-4 tracking-wide">MiPin</h3>
-              <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos de Realicó, La Pampa.</p>
+              <p className="font-body text-crema/60 text-sm">El directorio de comercios, servicios, profesiones, productores y emprendimientos.</p>
             </div>
             <div>
               <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Enlaces</h3>
@@ -413,18 +499,12 @@ function HomePage() {
                 <li><button onClick={volverAlInicio} className="hover:text-dorado-claro transition">Inicio</button></li>
                 <li><a href="#categorias" className="hover:text-dorado-claro transition">Categorías</a></li>
                 <li><a href="/promociones" className="hover:text-dorado-claro transition">Promociones</a></li>
-                <li><button onClick={() => setMostrarFormulario(true)} className="hover:text-dorado-claro transition">Publicar</button></li>
               </ul>
             </div>
             <div>
               <h3 className="font-display text-dorado text-xl mb-4 tracking-wide">Comercios</h3>
               <ul className="space-y-2 text-sm font-body">
-                <li>
-                  <a href="/dashboard" className="text-crema/80 hover:text-dorado-claro transition flex items-center justify-center md:justify-start gap-2">
-                    <span>🔒</span> Accedé a tu Panel
-                  </a>
-                </li>
-                <li className="text-crema/40 text-xs mt-2">Usá tu email y código de acceso para editar tus fotos, ver estadísticas y cargar promos.</li>
+                <li><a href="/dashboard" className="text-crema/80 hover:text-dorado-claro transition flex items-center justify-center md:justify-start gap-2"><span>🔒</span> Accedé a tu Panel</a></li>
               </ul>
             </div>
           </div>
@@ -448,7 +528,7 @@ function App() {
       <Route path="/ficha/:slug" element={<FichaDetalle />} />
       <Route path="/mapa" element={<Mapa />} />
       <Route path="/dashboard" element={<DashboardComercio />} />
-      <Route path="/promociones" element={<Promociones />} /> {/* 🆕 Ruta pública de promociones */}
+      <Route path="/promociones" element={<Promociones />} />
     </Routes>
   )
 }
