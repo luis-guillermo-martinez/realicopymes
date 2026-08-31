@@ -116,6 +116,37 @@ function FichaDetalle() {
     )
   }
 
+  // 🆕 FUNCIÓN PARA REGISTRAR CLICS (Definida correctamente)
+  const registrarClic = async (tipo) => {
+    if (!negocio || !negocio.id) {
+      console.error('❌ No se pudo registrar el clic: negocio o ID no encontrado.')
+      return
+    }
+    
+    console.log(`🖱️ Intentando registrar clic: ${tipo} para ID: ${negocio.id}`)
+    
+    try {
+      const campo = tipo === 'whatsapp' ? 'clics_whatsapp' : 'clics_mapa'
+      const valorActual = negocio[campo] || 0
+      
+      const { data, error } = await supabase
+        .from('negocios')
+        .update({ [campo]: valorActual + 1 })
+        .eq('id', negocio.id)
+        .select()
+
+      if (error) {
+        console.error('❌ Error de Supabase al registrar clic:', error)
+      } else {
+        console.log('✅ Clic registrado con éxito. Nuevo valor:', data)
+        // Actualizamos el estado local para que sea reactivo
+        setNegocio(prev => ({ ...prev, [campo]: valorActual + 1 }))
+      }
+    } catch (err) {
+      console.error('❌ Excepción inesperada al registrar clic:', err)
+    }
+  }
+
   if (cargando) {
     return (
       <div className="min-h-screen bg-crema flex items-center justify-center">
@@ -290,7 +321,15 @@ function FichaDetalle() {
                     <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-1">Teléfono</p>
                     <p className="font-body text-navy text-lg font-semibold mb-3">{negocio.telefono}</p>
                     {tieneWhatsApp && negocio.whatsapp && (
-                      <a href={`https://wa.me/${negocio.whatsapp}`} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition">Contactar por WhatsApp</a>
+                      <button
+                        onClick={async () => {
+                          await registrarClic('whatsapp')
+                          window.open(`https://wa.me/${negocio.whatsapp}`, '_blank')
+                        }}
+                        className="block w-full text-center bg-oliva text-white py-3 rounded-lg font-body font-bold hover:bg-oliva-dark transition"
+                      >
+                        Contactar por WhatsApp
+                      </button>
                     )}
                   </div>
                 )}
@@ -302,7 +341,7 @@ function FichaDetalle() {
                   </div>
                 )}
                 
-                {/* 🆕 SECCIÓN COMPARTIR FICHA */}
+                {/* SECCIÓN COMPARTIR FICHA */}
                 <div className="border-t border-navy/10 pt-6 mt-6">
                   <p className="font-label text-navy/60 text-xs uppercase tracking-wide mb-3">Compartir esta ficha</p>
                   <div className="flex flex-col gap-2">
@@ -444,14 +483,26 @@ function FichaDetalle() {
                   </div>
                 )}
                 {getMapsUrl() && (
-                  <a href={getMapsUrl()} target="_blank" rel="noopener noreferrer" className="block bg-dorado text-navy py-3 rounded-lg font-body font-bold text-center hover:bg-dorado-claro transition">
+                  <button
+                    onClick={async () => {
+                      await registrarClic('mapa')
+                      if (getMapsUrl()) window.open(getMapsUrl(), '_blank')
+                    }}
+                    className="block w-full text-center bg-dorado text-navy py-3 rounded-lg font-body font-bold hover:bg-dorado-claro transition"
+                  >
                     📍 Ver ubicación en Google Maps
-                  </a>
+                  </button>
                 )}
                 {tieneComoLlegar && getMapsUrl() && (
-                  <a href={getMapsUrl()} target="_blank" rel="noopener noreferrer" className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition mt-3">
+                  <button
+                    onClick={async () => {
+                      await registrarClic('mapa')
+                      if (getMapsUrl()) window.open(getMapsUrl(), '_blank')
+                    }}
+                    className="block w-full text-center bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition mt-3"
+                  >
                     🧭 Cómo llegar
-                  </a>
+                  </button>
                 )}
                 {tieneRedes && (redes.instagram || redes.facebook) && (
                   <div className="border-t border-navy/10 pt-4 mt-6">
@@ -481,7 +532,7 @@ function FichaDetalle() {
         </div>
       </main>
 
-      {/* 🆕 FOOTER ACTUALIZADO CON ENLACE A DASHBOARD */}
+      {/* FOOTER ACTUALIZADO CON ENLACE A DASHBOARD */}
       <footer className="bg-navy-dark text-crema/80 py-8 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left">

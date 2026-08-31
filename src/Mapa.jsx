@@ -151,7 +151,7 @@ function Mapa() {
                     <h3 className="font-bold text-navy">{n.nombre}</h3>
                     <p className="text-sm text-navy/70">{n.categoria}</p>
                     <button
-                      onClick={() => navigate(`/ficha/${n.id}`)}
+                      onClick={() => navigate(`/ficha/${n.slug || n.id}`)} // ✅ AHORA USA EL SLUG
                       className="mt-2 bg-dorado text-navy px-3 py-1 rounded text-xs font-bold hover:bg-dorado-claro transition"
                     >
                       Ver ficha →
