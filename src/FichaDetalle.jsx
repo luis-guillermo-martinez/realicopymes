@@ -116,7 +116,7 @@ function FichaDetalle() {
     )
   }
 
-  // 🆕 FUNCIÓN PARA REGISTRAR CLICS (Definida correctamente)
+  // 🆕 FUNCIÓN PARA REGISTRAR CLICS
   const registrarClic = async (tipo) => {
     if (!negocio || !negocio.id) {
       console.error('❌ No se pudo registrar el clic: negocio o ID no encontrado.')
@@ -139,7 +139,6 @@ function FichaDetalle() {
         console.error('❌ Error de Supabase al registrar clic:', error)
       } else {
         console.log('✅ Clic registrado con éxito. Nuevo valor:', data)
-        // Actualizamos el estado local para que sea reactivo
         setNegocio(prev => ({ ...prev, [campo]: valorActual + 1 }))
       }
     } catch (err) {
@@ -206,6 +205,20 @@ function FichaDetalle() {
   const getMapsEmbedUrl = () => {
     if (negocio.direccion) return `https://www.google.com/maps?q=${encodeURIComponent(negocio.direccion + ', Realicó, La Pampa, Argentina')}&output=embed`
     return null
+  }
+
+  // 🆕 FUNCIÓN PARA CONVERTIR URL DE YOUTUBE A MODO SIN COOKIES (EVITA BLOQUEOS)
+  const getVideoEmbedUrl = (url) => {
+    if (!url) return null
+    if (url.includes('watch?v=')) {
+      const videoId = url.split('watch?v=')[1].split('&')[0]
+      return `https://www.youtube-nocookie.com/embed/${videoId}`
+    }
+    if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1].split('?')[0]
+      return `https://www.youtube-nocookie.com/embed/${videoId}`
+    }
+    return url.replace('youtube.com/embed/', 'youtube-nocookie.com/embed/')
   }
 
   return (
@@ -294,12 +307,18 @@ function FichaDetalle() {
               </section>
             )}
 
-            {/* VIDEO */}
-            {tieneVideo && negocio.video_url && (
+            {/* 🆕 VIDEO CON YOUTUBE-NOCOOKIE Y PERMISOS COMPLETOS */}
+            {tieneVideo && negocio.video_url && getVideoEmbedUrl(negocio.video_url) && (
               <section className="bg-white p-6 rounded-xl shadow-md">
                 <h2 className="font-display text-3xl text-navy mb-6 tracking-wide">Video</h2>
                 <div className="aspect-video bg-navy/5 rounded-lg overflow-hidden">
-                  <iframe src={negocio.video_url.replace('watch?v=', 'embed/')} className="w-full h-full" allowFullScreen title={`Video de ${negocio.nombre}`} />
+                  <iframe 
+                    src={getVideoEmbedUrl(negocio.video_url)} 
+                    className="w-full h-full" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowFullScreen 
+                    title={`Video de ${negocio.nombre}`}
+                  />
                 </div>
               </section>
             )}
