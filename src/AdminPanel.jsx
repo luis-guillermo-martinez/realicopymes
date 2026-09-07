@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-import { jsPDF } from 'jspdf'
 import ReporteVisual from './ReporteVisual'
 import html2canvas from 'html2canvas'
 
@@ -20,7 +19,7 @@ function AdminPanel({ onClose }) {
   const [subiendoGaleria, setSubiendoGaleria] = useState(false)
   const [subiendoBanner, setSubiendoBanner] = useState(false)
   
-  // Estado para el modal de envío de reporte
+  // Estado para el modal de opciones de reporte
   const [reporteData, setReporteData] = useState(null)
 
   const ADMIN_PASSWORD = 'realico2026'
@@ -187,20 +186,24 @@ function AdminPanel({ onClose }) {
     const { error } = await supabase.from('resenas').update({ aprobado: true }).eq('id', resena.id)
     if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje(`✅ Reseña de "${resena.nombre}" aprobada.`); cargarDatos() }
   }
+  
   const eliminarResena = async (id) => {
     if (!window.confirm('¿Eliminar esta resena?')) return
     const { error } = await supabase.from('resenas').delete().eq('id', id)
     if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('🗑️ Resena eliminada.'); cargarDatos() }
   }
+  
   const aprobarPromo = async (id) => {
     const { error } = await supabase.from('promociones').update({ aprobada: true }).eq('id', id)
     if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('✅ Promocion aprobada.'); cargarDatos() }
   }
+  
   const rechazarPromo = async (id) => {
     if (!window.confirm('¿Rechazar y eliminar esta promocion?')) return
     const { error } = await supabase.from('promociones').delete().eq('id', id)
     if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('🗑️ Promocion rechazada.'); cargarDatos() }
   }
+  
   const toggleSuspender = async (negocio) => {
     const nuevoEstado = !negocio.suspendido
     const accion = nuevoEstado ? 'SUSPENDER' : 'REACTIVAR'
@@ -217,11 +220,35 @@ function AdminPanel({ onClose }) {
     }
   }
 
-    const generarReportePDF = async (negocio) => {
-    setMensaje('📊 Generando reporte...')
+  // ==========================================
+  // 🆕 FUNCIONES DE REPORTE (PDF, IMAGEN, TEXTO)
+  // ==========================================
+
+  const abrirOpcionesReporte = (negocio) => {
+    const plan = negocio.plan || 'Gratuito'
+    const ordenPlanes = ['Gratuito', 'Estandar', 'Estándar', 'Destacado', 'Patrocinado']
+    const planKey = ordenPlanes.includes(plan) ? plan : 'Gratuito'
     
+    let textoUpsell = ''
+    if (planKey === 'Gratuito') {
+      textoUpsell = '\n\n🚀 Te recomendamos subir al plan Estándar ($10.000/mes) para tener WhatsApp directo y fotos, o al Destacado ($25.000/mes) para máxima visibilidad.'
+    } else if (planKey === 'Estándar') {
+      textoUpsell = '\n\n🚀 Subí al plan Destacado ($25.000/mes) para tener galería, redes y mapa, o al Patrocinado ($75.000/mes) para liderar tu categoría.'
+    } else if (planKey === 'Destacado') {
+      textoUpsell = '\n\n🚀 Subí al plan Patrocinado ($75.000/mes) para tener video, banner propio y posición #1 garantizada.'
+    } else {
+      textoUpsell = '\n\n🏆 ¡Ya estás en el plan máximo! Seguí así, tu negocio tiene la máxima visibilidad en MiPin.'
+    }
+    
+    const total = (negocio.vistas || 0) + (negocio.clics_whatsapp || 0) + (negocio.clics_mapa || 0)
+    const textoResumen = `Hola ${negocio.nombre}! 👋\n\nTe compartimos tu reporte de rendimiento en MiPin:\n\n👁️ Vistas de ficha: ${negocio.vistas || 0}\n💬 Clics en WhatsApp: ${negocio.clics_whatsapp || 0}\n📍 Clics en Mapa: ${negocio.clics_mapa || 0}\n📊 Total de interacciones: ${total}${textoUpsell}\n\nTe adjuntamos el reporte con el detalle.\n\nwww.mipin.com.ar`
+    
+    setReporteData({ nombre: negocio.nombre, texto: textoResumen, negocio })
+  }
+
+  const capturarReporte = async (negocio, formato) => {
+    setMensaje(`📊 Generando ${formato === 'story' ? 'imagen' : 'PDF'}...`)
     try {
-      // 1. Crear contenedor temporal fuera de pantalla
       const contenedor = document.createElement('div')
       contenedor.style.position = 'fixed'
       contenedor.style.left = '-9999px'
@@ -229,18 +256,16 @@ function AdminPanel({ onClose }) {
       contenedor.style.zIndex = '-1'
       document.body.appendChild(contenedor)
       
-      // 2. Renderizar el componente visual
       const { createRoot } = await import('react-dom/client')
       const root = createRoot(contenedor)
       
       await new Promise((resolve) => {
-        root.render(<ReporteVisual negocio={negocio} />)
+        root.render(<ReporteVisual negocio={negocio} formato={formato} />)
         setTimeout(resolve, 800)
       })
       
-      // 3. Capturar como imagen de alta calidad
       const elemento = document.getElementById('reporte-visual')
-      if (!elemento) throw new Error('No se pudo renderizar el reporte visual.')
+      if (!elemento) throw new Error('No se pudo renderizar el reporte.')
       
       const canvas = await html2canvas(elemento, {
         scale: 2,
@@ -249,22 +274,28 @@ function AdminPanel({ onClose }) {
         logging: false
       })
       
-      const imagenData = canvas.toDataURL('image/png', 1.0)
-      
-      // 4. Limpiar
       root.unmount()
       document.body.removeChild(contenedor)
-      
-      // 5. Crear PDF
+      return canvas
+    } catch (err) {
+      console.error('Error capturando reporte:', err)
+      throw err
+    }
+  }
+
+  const descargarPDF = async () => {
+    if (!reporteData?.negocio) return
+    try {
+      const canvas = await capturarReporte(reporteData.negocio, 'pdf')
       const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       
       const anchoPDF = 210
       const altoImagen = (canvas.height * anchoPDF) / canvas.width
+      const imagenData = canvas.toDataURL('image/png', 1.0)
       
       doc.addImage(imagenData, 'PNG', 0, 0, anchoPDF, altoImagen)
       
-      // 6. Agregar pagina de contacto si hay espacio o en pagina nueva
       if (altoImagen < 260) {
         const yPos = altoImagen + 15
         doc.setFontSize(14)
@@ -274,77 +305,63 @@ function AdminPanel({ onClose }) {
         doc.setFontSize(11)
         doc.setTextColor(100, 100, 100)
         doc.setFont('helvetica', 'normal')
-        doc.text('Contactanos para conocer nuestros planes:', 20, yPos + 8)
-        doc.text('WhatsApp: +54 9 2302 57-6867', 20, yPos + 16)
-        doc.text('Web: www.mipin.com.ar', 20, yPos + 24)
-      } else {
-        doc.addPage()
-        doc.setFontSize(20)
-        doc.setTextColor(30, 58, 95)
-        doc.setFont('helvetica', 'bold')
-        doc.text('Listo para dar el siguiente paso?', 20, 40)
-        doc.setFontSize(12)
-        doc.setTextColor(100, 100, 100)
-        doc.setFont('helvetica', 'normal')
-        doc.text('WhatsApp: +54 9 2302 57-6867', 20, 60)
-        doc.text('Web: www.mipin.com.ar', 20, 70)
+        doc.text('WhatsApp: +54 9 2302 57-6867', 20, yPos + 10)
+        doc.text('Web: www.mipin.com.ar', 20, yPos + 18)
       }
       
-      // 7. Descargar PDF
-      const nombreArchivo = `Reporte_MiPin_${negocio.nombre.replace(/\s+/g, '_')}.pdf`
-      doc.save(nombreArchivo)
-      
-      // 8. 🆕 MOSTRAR MODAL CON TEXTO PARA COPIAR (despues de descargar)
-      const plan = negocio.plan || 'Gratuito'
-      const ordenPlanes = ['Gratuito', 'Estandar', 'Destacado', 'Patrocinado']
-      const idx = ordenPlanes.indexOf(plan)
-      let textoUpsell = ''
-      
-      if (plan === 'Gratuito') {
-        textoUpsell = '\n\n🚀 Te recomendamos subir al plan Estandar ($10.000/mes) para tener WhatsApp directo. O al Destacado ($25.000/mes) para maxima visibilidad,para tener galeria, redes, mapa y badge destacado. O al Patrocinado ($75.000/mes) para liderar tu categoria.'
-      } else if (plan === 'Estándar' || plan === 'Estandar') {
-        textoUpsell = '\n\n🚀 Subi al plan Destacado ($25.000/mes) para tener galeria, redes, mapa y badge destacado. O al Patrocinado ($75.000/mes) para liderar tu categoria.'
-      } else if (plan === 'Destacado') {
-        textoUpsell = '\n\n🚀 Subi al plan Patrocinado ($75.000/mes) para tener video, banner propio y posicion #1 garantizada.'
-      } else {
-        textoUpsell = '\n\n🏆 Ya estas en el plan maximo! Segui asi, tu negocio tiene la maxima visibilidad en MiPin.'
-      }
-      
-      const total = (negocio.vistas || 0) + (negocio.clics_whatsapp || 0) + (negocio.clics_mapa || 0)
-      const textoResumen = `Hola ${negocio.nombre}! 👋\n\nTe compartimos tu reporte de rendimiento en MiPin:\n\n👁️ Vistas de ficha: ${negocio.vistas || 0}\n💬 Clics en WhatsApp: ${negocio.clics_whatsapp || 0}\n📍 Clics en Mapa: ${negocio.clics_mapa || 0}\n📊 Total de interacciones: ${total}${textoUpsell}\n\nTe adjuntamos el PDF con el detalle.\n\nwww.mipin.com.ar`
-      
-      setReporteData({ nombre: negocio.nombre, texto: textoResumen })
-      setMensaje('')
-      
+      doc.save(`Reporte_MiPin_${reporteData.negocio.nombre.replace(/\s+/g, '_')}.pdf`)
+      setMensaje('✅ PDF descargado con éxito.')
     } catch (err) {
-      console.error('Error generando reporte:', err)
-      setMensaje('❌ Error al generar el reporte: ' + err.message)
+      setMensaje('❌ Error al generar PDF: ' + err.message)
+    } finally {
+      setTimeout(() => setMensaje(''), 3000)
     }
   }
-    // 🆕 FUNCIONES FALTANTES QUE CAUSABAN EL ERROR DE PANTALLA EN BLANCO
+
+  const descargarImagen = async () => {
+    if (!reporteData?.negocio) return
+    try {
+      const canvas = await capturarReporte(reporteData.negocio, 'story')
+      const imagenData = canvas.toDataURL('image/jpeg', 0.95)
+      
+      const link = document.createElement('a')
+      link.download = `Reporte_MiPin_${reporteData.negocio.nombre.replace(/\s+/g, '_')}_Instagram.jpg`
+      link.href = imagenData
+      link.click()
+      
+      setMensaje('✅ Imagen 9:16 descargada con éxito.')
+    } catch (err) {
+      setMensaje('❌ Error al generar imagen: ' + err.message)
+    } finally {
+      setTimeout(() => setMensaje(''), 3000)
+    }
+  }
+
   const copiarAlPortapapeles = () => {
-    if (!reporteData) return;
+    if (!reporteData) return
     navigator.clipboard.writeText(reporteData.texto).then(() => {
-      setMensaje('✅ Texto copiado. Ahora pegalo en WhatsApp y adjunta el PDF.');
+      setMensaje('✅ Texto copiado. Pegalo en WhatsApp y adjuntá el archivo.')
       setTimeout(() => {
-        setMensaje('');
-        setReporteData(null);
-      }, 3000);
-    }).catch(err => {
-      console.error('Error al copiar:', err);
-      setMensaje('❌ No se pudo copiar el texto.');
-    });
+        setMensaje('')
+        setReporteData(null)
+      }, 3000)
+    }).catch(() => {
+      setMensaje('❌ No se pudo copiar el texto.')
+    })
   }
 
   const abrirEmail = () => {
-    if (!reporteData) return;
-    const subject = encodeURIComponent(`Reporte de rendimiento en MiPin - ${reporteData.nombre}`);
-    const body = encodeURIComponent(reporteData.texto + '\n\n(Adjunto encontrarás el PDF con el detalle)');
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    setReporteData(null);
+    if (!reporteData) return
+    const subject = encodeURIComponent(`Reporte de rendimiento en MiPin - ${reporteData.nombre}`)
+    const body = encodeURIComponent(reporteData.texto + '\n\n(Adjunto encontrarás el reporte con el detalle)')
+    window.location.href = `mailto:?subject=${subject}&body=${body}`
+    setReporteData(null)
   }
 
-  
+  // ==========================================
+  // ESTADÍSTICAS Y FILTROS
+  // ==========================================
+
   const totalActivos = publicados.filter(n => !n.suspendido).length
   const totalSuspendidos = publicados.filter(n => n.suspendido).length
   const totalVistas = publicados.reduce((sum, n) => sum + (n.vistas || 0), 0)
@@ -360,6 +377,10 @@ function AdminPanel({ onClose }) {
   }
   const pendientesFiltrados = aplicarFiltro(pendientes)
   const publicadosFiltrados = aplicarFiltro(publicados)
+
+  // ==========================================
+  // RENDERIZADO
+  // ==========================================
 
   if (!isAuthenticated) {
     return (
@@ -539,22 +560,50 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* 🆕 MODAL DE ENVÍO DE REPORTE */}
+        {/* 🆕 MODAL DE OPCIONES DE REPORTE */}
         {reporteData && (
-          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
-              <h3 className="font-display text-xl text-navy mb-4">📊 Reporte Generado</h3>
-              <p className="font-body text-sm text-navy/70 mb-6">
-                El PDF se descargo en tu dispositivo. Ahora elegi como enviar el resumen al comercio (no olvides adjuntar el PDF descargado):
+          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-navy/10">
+              <h3 className="font-display text-xl text-navy mb-2 text-center">📊 Reporte de {reporteData.nombre}</h3>
+              <p className="font-body text-sm text-navy/70 mb-6 text-center">
+                Elegí en qué formato querés generar el reporte para el comercio:
               </p>
               <div className="space-y-3">
-                <button onClick={copiarAlPortapapeles} className="w-full bg-green-500 text-white py-3 rounded-lg font-body font-bold hover:bg-green-600 transition flex items-center justify-center gap-2">
-                  📋 Copiar texto para WhatsApp
+                <button 
+                  onClick={descargarPDF} 
+                  className="w-full bg-navy text-crema py-3 rounded-xl font-body font-bold hover:bg-navy-dark transition flex items-center justify-center gap-2 shadow-md"
+                >
+                  📄 Descargar PDF (A4)
                 </button>
-                <button onClick={abrirEmail} className="w-full bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition flex items-center justify-center gap-2">
-                  ✉️ Abrir Email
+                <button 
+                  onClick={descargarImagen} 
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-body font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-md"
+                >
+                  📱 Descargar Imagen (9:16 Instagram)
                 </button>
-                <button onClick={() => setReporteData(null)} className="w-full text-navy/60 py-2 text-sm hover:text-navy transition">
+                
+                <div className="border-t border-navy/10 my-4 pt-4">
+                  <p className="font-body text-xs text-navy/50 text-center mb-3 uppercase tracking-wide font-bold">O enviar por texto</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={copiarAlPortapapeles} 
+                      className="bg-green-500 text-white py-2.5 rounded-lg font-body font-bold hover:bg-green-600 transition flex items-center justify-center gap-1 text-sm"
+                    >
+                      📋 Copiar
+                    </button>
+                    <button 
+                      onClick={abrirEmail} 
+                      className="bg-gray-100 text-navy py-2.5 rounded-lg font-body font-bold hover:bg-gray-200 transition flex items-center justify-center gap-1 text-sm"
+                    >
+                      ✉️ Email
+                    </button>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => setReporteData(null)} 
+                  className="w-full text-navy/50 py-2 text-sm hover:text-navy transition font-body"
+                >
                   Cerrar
                 </button>
               </div>
@@ -737,9 +786,9 @@ function AdminPanel({ onClose }) {
                             <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} 👁️</td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-2 justify-center">
-                                {/* 🆕 BOTÓN DE REPORTE */}
+                                {/* 🆕 BOTÓN DE REPORTE ACTUALIZADO */}
                                 <button 
-                                  onClick={() => generarReportePDF(sol)} 
+                                  onClick={() => abrirOpcionesReporte(sol)} 
                                   className="bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-600 transition text-xs flex items-center gap-1"
                                 >
                                   📊 Reporte
