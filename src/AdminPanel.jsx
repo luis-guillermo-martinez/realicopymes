@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { jsPDF } from 'jspdf'
+import ReporteVisual from './ReporteVisual'
+import html2canvas from 'html2canvas'
 
 function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [vistaActual, setVistaActual] = useState('dashboard')
   const [resenas, setResenas] = useState([])
-  const [promociones, setPromociones] = useState([]) // 🆕
+  const [promociones, setPromociones] = useState([])
   const [filtroPlan, setFiltroPlan] = useState('Todos')
   const [pendientes, setPendientes] = useState([])
   const [publicados, setPublicados] = useState([])
@@ -16,6 +19,10 @@ function AdminPanel({ onClose }) {
   const [subiendoPortada, setSubiendoPortada] = useState(false)
   const [subiendoGaleria, setSubiendoGaleria] = useState(false)
   const [subiendoBanner, setSubiendoBanner] = useState(false)
+  
+  // Estado para el modal de envío de reporte
+  const [reporteData, setReporteData] = useState(null)
+
   const ADMIN_PASSWORD = 'realico2026'
   const PLANES = ['Todos', 'Gratuito', 'Estándar', 'Destacado', 'Patrocinado']
 
@@ -30,17 +37,10 @@ function AdminPanel({ onClose }) {
     setPendientes(dataPendientes || [])
     setPublicados(dataPublicados || [])
     
-    const { data: dataResenas } = await supabase
-      .from('resenas')
-      .select('*, negocios(nombre)')
-      .order('created_at', { ascending: false })
+    const { data: dataResenas } = await supabase.from('resenas').select('*, negocios(nombre)').order('created_at', { ascending: false })
     setResenas(dataResenas || [])
 
-    // 🆕 Cargar promociones con el nombre del negocio
-    const { data: dataPromos } = await supabase
-      .from('promociones')
-      .select('*, negocios(nombre, plan)')
-      .order('created_at', { ascending: false })
+    const { data: dataPromos } = await supabase.from('promociones').select('*, negocios(nombre, plan)').order('created_at', { ascending: false })
     setPromociones(dataPromos || [])
 
     setCargando(false)
@@ -74,11 +74,7 @@ function AdminPanel({ onClose }) {
   }
 
   const generarSlug = (nombre) => {
-    return nombre
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
+    return nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
   }
 
   const maxGaleria = editando ? (editando.plan === 'Patrocinado' ? 5 : editando.plan === 'Destacado' ? 3 : 0) : 0
@@ -101,7 +97,6 @@ function AdminPanel({ onClose }) {
       setEditando(prev => ({ ...prev, foto_portada: url }))
       setMensaje('✅ Foto de portada subida.')
     } catch (err) {
-      console.error(err)
       setMensaje('❌ Error al subir la foto: ' + err.message)
     } finally {
       setSubiendoPortada(false)
@@ -124,7 +119,6 @@ function AdminPanel({ onClose }) {
       setEditando(prev => ({ ...prev, galeria: [...(prev.galeria || []), ...urls].slice(0, maxGaleria) }))
       setMensaje('✅ Imágenes de galería subidas.')
     } catch (err) {
-      console.error(err)
       setMensaje('❌ Error al subir imágenes: ' + err.message)
     } finally {
       setSubiendoGaleria(false)
@@ -141,7 +135,6 @@ function AdminPanel({ onClose }) {
       setEditando(prev => ({ ...prev, banner_url: url }))
       setMensaje('✅ Banner subido.')
     } catch (err) {
-      console.error(err)
       setMensaje('❌ Error al subir el banner: ' + err.message)
     } finally {
       setSubiendoBanner(false)
@@ -158,51 +151,26 @@ function AdminPanel({ onClose }) {
     setMensaje('Procesando...')
     try {
       const categoriasArray = editando.categoria.split(',').map(c => c.trim()).filter(c => c !== '').slice(0, 3)
-      const categoriaFinal = categoriasArray.join(', ')
-
-      const redes = JSON.stringify({
-        instagram: editando.instagram || '',
-        facebook: editando.facebook || ''
-      })
-      
-      const { error } = await supabase
-        .from('negocios')
-        .update({
-          nombre: editando.nombre,
-          slug: generarSlug(editando.nombre),
-          tipo: editando.tipo,
-          categoria: categoriaFinal,
-          descripcion: editando.descripcion,
-          direccion: editando.direccion,
-          telefono: editando.telefono,
-          whatsapp: editando.whatsapp,
-          email: editando.email,
-          horario: editando.horario,
-          plan: editando.plan,
-          foto_portada: editando.foto_portada,
-          galeria: JSON.stringify(editando.galeria || []),
-          video_url: editando.video_url || null,
-          banner_url: editando.banner_url || null,
-          google_maps_url: editando.google_maps_url,
-          redes_sociales: redes,
-          activo: true,
-          suspendido: false,
-          destacado: editando.plan === 'Destacado' || editando.plan === 'Patrocinado',
-          estado: 'Aprobado'
-        })
-        .eq('id', editando.id)
+      const redes = JSON.stringify({ instagram: editando.instagram || '', facebook: editando.facebook || '' })
+      const { error } = await supabase.from('negocios').update({
+        nombre: editando.nombre, slug: generarSlug(editando.nombre), tipo: editando.tipo, categoria: categoriasArray.join(', '),
+        descripcion: editando.descripcion, direccion: editando.direccion, telefono: editando.telefono, whatsapp: editando.whatsapp,
+        email: editando.email, horario: editando.horario, plan: editando.plan, foto_portada: editando.foto_portada,
+        galeria: JSON.stringify(editando.galeria || []), video_url: editando.video_url || null, banner_url: editando.banner_url || null,
+        google_maps_url: editando.google_maps_url, redes_sociales: redes, activo: true, suspendido: false,
+        destacado: editando.plan === 'Destacado' || editando.plan === 'Patrocinado', estado: 'Aprobado'
+      }).eq('id', editando.id)
       if (error) throw error
       setMensaje(`✅ "${editando.nombre}" guardado correctamente.`)
       setEditando(null)
       setTimeout(() => { setMensaje(''); cargarDatos() }, 2500)
     } catch (error) {
-      console.error('Error:', error)
       setMensaje('❌ Error: ' + error.message)
     }
   }
 
   const eliminarNegocio = async (id, nombre) => {
-    if (!window.confirm(`¿Eliminar PERMANENTEMENTE a "${nombre}"? Esta acción no se puede deshacer.`)) return
+    if (!window.confirm(`¿Eliminar PERMANENTEMENTE a "${nombre}"?`)) return
     setMensaje('Procesando...')
     try {
       const { error } = await supabase.from('negocios').delete().eq('id', id)
@@ -217,51 +185,26 @@ function AdminPanel({ onClose }) {
 
   const aprobarResena = async (resena) => {
     const { error } = await supabase.from('resenas').update({ aprobado: true }).eq('id', resena.id)
-    if (error) {
-      setMensaje('❌ Error: ' + error.message)
-    } else {
-      setMensaje(`✅ Reseña de "${resena.nombre}" aprobada.`)
-      cargarDatos()
-    }
+    if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje(`✅ Reseña de "${resena.nombre}" aprobada.`); cargarDatos() }
   }
-
   const eliminarResena = async (id) => {
-    if (!window.confirm('¿Eliminar esta reseña?')) return
+    if (!window.confirm('¿Eliminar esta resena?')) return
     const { error } = await supabase.from('resenas').delete().eq('id', id)
-    if (error) {
-      setMensaje('❌ Error: ' + error.message)
-    } else {
-      setMensaje('🗑️ Reseña eliminada.')
-      cargarDatos()
-    }
+    if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('🗑️ Resena eliminada.'); cargarDatos() }
   }
-
-  // 🆕 FUNCIONES DE MODERACIÓN DE PROMOCIONES
   const aprobarPromo = async (id) => {
     const { error } = await supabase.from('promociones').update({ aprobada: true }).eq('id', id)
-    if (error) {
-      setMensaje('❌ Error: ' + error.message)
-    } else {
-      setMensaje('✅ Promoción aprobada.')
-      cargarDatos()
-    }
+    if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('✅ Promocion aprobada.'); cargarDatos() }
   }
-
   const rechazarPromo = async (id) => {
-    if (!window.confirm('¿Rechazar y eliminar esta promoción?')) return
+    if (!window.confirm('¿Rechazar y eliminar esta promocion?')) return
     const { error } = await supabase.from('promociones').delete().eq('id', id)
-    if (error) {
-      setMensaje('❌ Error: ' + error.message)
-    } else {
-      setMensaje('🗑️ Promoción rechazada.')
-      cargarDatos()
-    }
+    if (error) { setMensaje('❌ Error: ' + error.message) } else { setMensaje('🗑️ Promocion rechazada.'); cargarDatos() }
   }
-
   const toggleSuspender = async (negocio) => {
     const nuevoEstado = !negocio.suspendido
     const accion = nuevoEstado ? 'SUSPENDER' : 'REACTIVAR'
-    if (!window.confirm(`¿${accion} a "${negocio.nombre}"?\n\n${nuevoEstado ? 'Desaparecerá de la web hasta que lo reactives.' : 'Volverá a aparecer en la web.'}`)) return
+    if (!window.confirm(`¿${accion} a "${negocio.nombre}"?`)) return
     setMensaje('Procesando...')
     try {
       const { error } = await supabase.from('negocios').update({ suspendido: nuevoEstado }).eq('id', negocio.id)
@@ -274,6 +217,134 @@ function AdminPanel({ onClose }) {
     }
   }
 
+    const generarReportePDF = async (negocio) => {
+    setMensaje('📊 Generando reporte...')
+    
+    try {
+      // 1. Crear contenedor temporal fuera de pantalla
+      const contenedor = document.createElement('div')
+      contenedor.style.position = 'fixed'
+      contenedor.style.left = '-9999px'
+      contenedor.style.top = '0'
+      contenedor.style.zIndex = '-1'
+      document.body.appendChild(contenedor)
+      
+      // 2. Renderizar el componente visual
+      const { createRoot } = await import('react-dom/client')
+      const root = createRoot(contenedor)
+      
+      await new Promise((resolve) => {
+        root.render(<ReporteVisual negocio={negocio} />)
+        setTimeout(resolve, 800)
+      })
+      
+      // 3. Capturar como imagen de alta calidad
+      const elemento = document.getElementById('reporte-visual')
+      if (!elemento) throw new Error('No se pudo renderizar el reporte visual.')
+      
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        backgroundColor: '#1e3a5f',
+        useCORS: true,
+        logging: false
+      })
+      
+      const imagenData = canvas.toDataURL('image/png', 1.0)
+      
+      // 4. Limpiar
+      root.unmount()
+      document.body.removeChild(contenedor)
+      
+      // 5. Crear PDF
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      
+      const anchoPDF = 210
+      const altoImagen = (canvas.height * anchoPDF) / canvas.width
+      
+      doc.addImage(imagenData, 'PNG', 0, 0, anchoPDF, altoImagen)
+      
+      // 6. Agregar pagina de contacto si hay espacio o en pagina nueva
+      if (altoImagen < 260) {
+        const yPos = altoImagen + 15
+        doc.setFontSize(14)
+        doc.setTextColor(30, 58, 95)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Listo para dar el siguiente paso?', 20, yPos)
+        doc.setFontSize(11)
+        doc.setTextColor(100, 100, 100)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Contactanos para conocer nuestros planes:', 20, yPos + 8)
+        doc.text('WhatsApp: +54 9 2302 57-6867', 20, yPos + 16)
+        doc.text('Web: www.mipin.com.ar', 20, yPos + 24)
+      } else {
+        doc.addPage()
+        doc.setFontSize(20)
+        doc.setTextColor(30, 58, 95)
+        doc.setFont('helvetica', 'bold')
+        doc.text('Listo para dar el siguiente paso?', 20, 40)
+        doc.setFontSize(12)
+        doc.setTextColor(100, 100, 100)
+        doc.setFont('helvetica', 'normal')
+        doc.text('WhatsApp: +54 9 2302 57-6867', 20, 60)
+        doc.text('Web: www.mipin.com.ar', 20, 70)
+      }
+      
+      // 7. Descargar PDF
+      const nombreArchivo = `Reporte_MiPin_${negocio.nombre.replace(/\s+/g, '_')}.pdf`
+      doc.save(nombreArchivo)
+      
+      // 8. 🆕 MOSTRAR MODAL CON TEXTO PARA COPIAR (despues de descargar)
+      const plan = negocio.plan || 'Gratuito'
+      const ordenPlanes = ['Gratuito', 'Estandar', 'Destacado', 'Patrocinado']
+      const idx = ordenPlanes.indexOf(plan)
+      let textoUpsell = ''
+      
+      if (plan === 'Gratuito') {
+        textoUpsell = '\n\n🚀 Te recomendamos subir al plan Estandar ($10.000/mes) para tener WhatsApp directo. O al Destacado ($25.000/mes) para maxima visibilidad,para tener galeria, redes, mapa y badge destacado. O al Patrocinado ($75.000/mes) para liderar tu categoria.'
+      } else if (plan === 'Estándar' || plan === 'Estandar') {
+        textoUpsell = '\n\n🚀 Subi al plan Destacado ($25.000/mes) para tener galeria, redes, mapa y badge destacado. O al Patrocinado ($75.000/mes) para liderar tu categoria.'
+      } else if (plan === 'Destacado') {
+        textoUpsell = '\n\n🚀 Subi al plan Patrocinado ($75.000/mes) para tener video, banner propio y posicion #1 garantizada.'
+      } else {
+        textoUpsell = '\n\n🏆 Ya estas en el plan maximo! Segui asi, tu negocio tiene la maxima visibilidad en MiPin.'
+      }
+      
+      const total = (negocio.vistas || 0) + (negocio.clics_whatsapp || 0) + (negocio.clics_mapa || 0)
+      const textoResumen = `Hola ${negocio.nombre}! 👋\n\nTe compartimos tu reporte de rendimiento en MiPin:\n\n👁️ Vistas de ficha: ${negocio.vistas || 0}\n💬 Clics en WhatsApp: ${negocio.clics_whatsapp || 0}\n📍 Clics en Mapa: ${negocio.clics_mapa || 0}\n📊 Total de interacciones: ${total}${textoUpsell}\n\nTe adjuntamos el PDF con el detalle.\n\nwww.mipin.com.ar`
+      
+      setReporteData({ nombre: negocio.nombre, texto: textoResumen })
+      setMensaje('')
+      
+    } catch (err) {
+      console.error('Error generando reporte:', err)
+      setMensaje('❌ Error al generar el reporte: ' + err.message)
+    }
+  }
+    // 🆕 FUNCIONES FALTANTES QUE CAUSABAN EL ERROR DE PANTALLA EN BLANCO
+  const copiarAlPortapapeles = () => {
+    if (!reporteData) return;
+    navigator.clipboard.writeText(reporteData.texto).then(() => {
+      setMensaje('✅ Texto copiado. Ahora pegalo en WhatsApp y adjunta el PDF.');
+      setTimeout(() => {
+        setMensaje('');
+        setReporteData(null);
+      }, 3000);
+    }).catch(err => {
+      console.error('Error al copiar:', err);
+      setMensaje('❌ No se pudo copiar el texto.');
+    });
+  }
+
+  const abrirEmail = () => {
+    if (!reporteData) return;
+    const subject = encodeURIComponent(`Reporte de rendimiento en MiPin - ${reporteData.nombre}`);
+    const body = encodeURIComponent(reporteData.texto + '\n\n(Adjunto encontrarás el PDF con el detalle)');
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    setReporteData(null);
+  }
+
+  
   const totalActivos = publicados.filter(n => !n.suspendido).length
   const totalSuspendidos = publicados.filter(n => n.suspendido).length
   const totalVistas = publicados.reduce((sum, n) => sum + (n.vistas || 0), 0)
@@ -329,30 +400,27 @@ function AdminPanel({ onClose }) {
                 <select name="tipo" value={editando.tipo} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm">
                   <option value="Comercio">Comercio</option>
                   <option value="Servicio">Servicio</option>
-                  <option value="Profesión">Profesión</option>
+                  <option value="Profesion">Profesion</option>
                   <option value="Productor Local">Productor Local</option>
                   <option value="Emprendimiento">Emprendimiento</option>
                 </select>
               </div>
               <div>
-                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categorías (máx 3, separadas por coma) *</label>
-                <input name="categoria" value={editando.categoria} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="Ej: Gastronomía, Delivery" />
-                <p className="text-xs text-navy/50 mt-1">
-                  {editando.categoria.split(',').filter(c => c.trim() !== '').length}/3 categorías
-                </p>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Categorias (max 3, separadas por coma) *</label>
+                <input name="categoria" value={editando.categoria} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" placeholder="Ej: Gastronomia, Delivery" />
               </div>
               <div>
                 <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Plan *</label>
                 <select name="plan" value={editando.plan} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm font-bold">
                   <option value="Gratuito">Gratuito</option>
-                  <option value="Estándar">Estándar</option>
+                  <option value="Estandar">Estandar</option>
                   <option value="Destacado">Destacado</option>
                   <option value="Patrocinado">Patrocinado</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Descripción *</label>
+              <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Descripcion *</label>
               <textarea name="descripcion" value={editando.descripcion} onChange={handleInputChange} rows="3" className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -361,11 +429,11 @@ function AdminPanel({ onClose }) {
                 <input name="nombre_contacto" value={editando.nombre_contacto || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
               </div>
               <div>
-                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Teléfono</label>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Telefono</label>
                 <input name="telefono" value={editando.telefono} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
               </div>
               <div>
-                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">WhatsApp (solo números)</label>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">WhatsApp (solo numeros)</label>
                 <input name="whatsapp" value={editando.whatsapp} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
               </div>
               <div>
@@ -373,7 +441,7 @@ function AdminPanel({ onClose }) {
                 <input name="email" value={editando.email} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
               </div>
               <div>
-                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Dirección</label>
+                <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Direccion</label>
                 <input name="direccion" value={editando.direccion || ''} onChange={handleInputChange} className="w-full px-3 py-2 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado font-body text-sm" />
               </div>
               <div>
@@ -383,7 +451,7 @@ function AdminPanel({ onClose }) {
             </div>
 
             <div className="border-t border-navy/10 pt-6">
-              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia, Ubicación y Redes</h3>
+              <h3 className="font-label text-navy font-bold uppercase tracking-wide text-xs mb-4">Multimedia, Ubicacion y Redes</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block font-label text-navy font-bold mb-1 uppercase tracking-wide text-xs">Foto de Portada</label>
@@ -409,24 +477,24 @@ function AdminPanel({ onClose }) {
 
               {maxGaleria > 0 ? (
                 <div className="mt-6">
-                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">Galería ({(editando.galeria || []).length}/{maxGaleria} imágenes)</label>
+                  <label className="block font-label text-navy font-bold mb-2 uppercase tracking-wide text-xs">Galeria ({(editando.galeria || []).length}/{maxGaleria} imagenes)</label>
                   <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-2">
                     {(editando.galeria || []).map((foto, idx) => (
                       <div key={idx} className="relative">
-                        <img src={foto} alt={`Galería ${idx + 1}`} className="w-full aspect-square object-cover rounded-lg" />
+                        <img src={foto} alt={`Galeria ${idx + 1}`} className="w-full aspect-square object-cover rounded-lg" />
                         <button type="button" onClick={() => quitarFotoGaleria(idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs font-bold hover:bg-red-600">✕</button>
                       </div>
                     ))}
                   </div>
                   {(editando.galeria || []).length < maxGaleria && (
                     <label className={`block w-full text-center py-2 rounded-lg font-body font-bold cursor-pointer transition text-sm ${subiendoGaleria ? 'bg-gray-300 text-gray-500' : 'bg-navy text-crema hover:bg-navy-dark'}`}>
-                      {subiendoGaleria ? '⏳ Subiendo...' : `📷 Subir imágenes (${(editando.galeria || []).length}/${maxGaleria})`}
+                      {subiendoGaleria ? '⏳ Subiendo...' : `📷 Subir imagenes (${(editando.galeria || []).length}/${maxGaleria})`}
                       <input type="file" accept="image/*" multiple onChange={manejarSubidaGaleria} className="hidden" disabled={subiendoGaleria} />
                     </label>
                   )}
                 </div>
               ) : (
-                <p className="mt-4 font-body text-navy/50 text-xs">📷 La galería de fotos está disponible en los planes Destacado (3 fotos) y Patrocinado (5 fotos).</p>
+                <p className="mt-4 font-body text-navy/50 text-xs">📷 La galeria de fotos esta disponible en los planes Destacado (3 fotos) y Patrocinado (5 fotos).</p>
               )}
 
               {editando.plan === 'Patrocinado' && (
@@ -461,20 +529,48 @@ function AdminPanel({ onClose }) {
     <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="font-display text-3xl text-navy tracking-wide">Panel de Administración</h1>
+          <h1 className="font-display text-3xl text-navy tracking-wide">Panel de Administracion</h1>
           <button onClick={onClose} className="bg-red-500 text-white px-4 py-2 rounded-lg font-body font-bold hover:bg-red-600 transition">Salir</button>
         </div>
+        
         {mensaje && (
-          <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{mensaje}</div>
+          <div className={`p-4 rounded-lg mb-6 font-body font-bold text-center ${mensaje.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {mensaje}
+          </div>
         )}
+
+        {/* 🆕 MODAL DE ENVÍO DE REPORTE */}
+        {reporteData && (
+          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <h3 className="font-display text-xl text-navy mb-4">📊 Reporte Generado</h3>
+              <p className="font-body text-sm text-navy/70 mb-6">
+                El PDF se descargo en tu dispositivo. Ahora elegi como enviar el resumen al comercio (no olvides adjuntar el PDF descargado):
+              </p>
+              <div className="space-y-3">
+                <button onClick={copiarAlPortapapeles} className="w-full bg-green-500 text-white py-3 rounded-lg font-body font-bold hover:bg-green-600 transition flex items-center justify-center gap-2">
+                  📋 Copiar texto para WhatsApp
+                </button>
+                <button onClick={abrirEmail} className="w-full bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition flex items-center justify-center gap-2">
+                  ✉️ Abrir Email
+                </button>
+                <button onClick={() => setReporteData(null)} className="w-full text-navy/60 py-2 text-sm hover:text-navy transition">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2 mb-6 flex-wrap">
           <button onClick={() => setVistaActual('dashboard')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'dashboard' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>📊 Dashboard</button>
           <button onClick={() => setVistaActual('pendientes')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'pendientes' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🕒 Pendientes ({pendientes.length})</button>
           <button onClick={() => setVistaActual('publicados')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'publicados' ? 'bg-dorado text-navy shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>✅ Publicados ({publicados.length})</button>
-          <button onClick={() => setVistaActual('resenas')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>⭐ Reseñas ({resenas.filter(r => !r.aprobado).length})</button>
+          <button onClick={() => setVistaActual('resenas')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'resenas' ? 'bg-navy text-crema shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>⭐ Resenas ({resenas.filter(r => !r.aprobado).length})</button>
           <button onClick={() => setVistaActual('promociones')} className={`px-6 py-3 rounded-t-lg font-body font-bold transition flex items-center gap-2 ${vistaActual === 'promociones' ? 'bg-red-500 text-white shadow-md' : 'bg-white text-navy/60 hover:bg-crema'}`}>🎁 Promociones ({promociones.filter(p => !p.aprobada).length})</button>
         </div>
 
+        {/* VISTA DASHBOARD */}
         {vistaActual === 'dashboard' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -484,9 +580,9 @@ function AdminPanel({ onClose }) {
                 <p className="font-body text-xs text-navy/50 mt-2">De un total de {publicados.length} registrados</p>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-dorado">
-                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Pendientes de Aprobación</p>
+                <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Pendientes de Aprobacion</p>
                 <p className="font-display text-4xl text-navy tracking-wide">{pendientes.length}</p>
-                <p className="font-body text-xs text-navy/50 mt-2">Requieren tu revisión</p>
+                <p className="font-body text-xs text-navy/50 mt-2">Requieren tu revision</p>
               </div>
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-navy">
                 <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Vistas Totales</p>
@@ -496,41 +592,57 @@ function AdminPanel({ onClose }) {
               <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500">
                 <p className="font-label text-navy/60 text-xs uppercase tracking-wider mb-1">Suspendidos</p>
                 <p className="font-display text-4xl text-navy tracking-wide">{totalSuspendidos}</p>
-                <p className="font-body text-xs text-navy/50 mt-2">Por falta de pago o revisión</p>
+                <p className="font-body text-xs text-navy/50 mt-2">Por falta de pago o revision</p>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md">
-              <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">Distribución por Plan (Activos)</h3>
+              <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">Distribucion por Plan (Activos)</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-100 p-4 rounded-lg text-center"><p className="font-label text-gray-600 text-xs uppercase font-bold">Gratuito</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Gratuito'] || 0}</p></div>
-                <div className="bg-crema p-4 rounded-lg text-center border border-navy/10"><p className="font-label text-navy/70 text-xs uppercase font-bold">Estándar</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Estándar'] || 0}</p></div>
+                <div className="bg-crema p-4 rounded-lg text-center border border-navy/10"><p className="font-label text-navy/70 text-xs uppercase font-bold">Estandar</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Estandar'] || 0}</p></div>
                 <div className="bg-dorado/20 p-4 rounded-lg text-center border border-dorado"><p className="font-label text-navy text-xs uppercase font-bold">Destacado</p><p className="font-display text-3xl text-navy mt-1">{conteoPorPlan['Destacado'] || 0}</p></div>
                 <div className="bg-navy p-4 rounded-lg text-center"><p className="font-label text-crema/80 text-xs uppercase font-bold">Patrocinado</p><p className="font-display text-3xl text-crema mt-1">{conteoPorPlan['Patrocinado'] || 0}</p></div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <h3 className="font-display text-2xl text-navy mb-4 tracking-wide">Últimos 5 Registros</h3>
-              <div className="space-y-3">
-                {[...pendientes, ...publicados].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5).map((n) => (
-                  <div key={n.id} className="flex justify-between items-center p-3 bg-crema/30 rounded-lg hover:bg-crema transition cursor-pointer" onClick={() => abrirEdicion(n)}>
-                    <div>
-                      <p className="font-body font-bold text-navy">{n.nombre}</p>
-                      <p className="font-body text-xs text-navy/60">{n.tipo} • {n.plan}</p>
-                    </div>
-                    <span className={`font-label text-xs px-2 py-1 rounded ${n.activo ? (n.suspendido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700') : 'bg-dorado/20 text-navy'}`}>
-                      {n.activo ? (n.suspendido ? 'Suspendido' : 'Activo') : 'Pendiente'}
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* 🆕 VISTA DE PROMOCIONES */}
+        {/* VISTA RESENAS */}
+        {vistaActual === 'resenas' && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestion de Resenas</h3>
+            {resenas.length === 0 ? (
+              <p className="text-navy/60 text-center py-8">No hay resenas registradas</p>
+            ) : (
+              <div className="space-y-4">
+                {resenas.map((r) => (
+                  <div key={r.id} className={`p-4 rounded-lg border-2 ${r.aprobado ? 'bg-green-50 border-green-200' : 'bg-dorado/10 border-dorado'}`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-body font-bold text-navy">{r.nombre}</p>
+                        <p className="font-body text-xs text-navy/60">Para: {r.negocios?.nombre || 'Negocio eliminado'} • {new Date(r.created_at).toLocaleDateString('es-AR')}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-dorado text-lg">{'★'.repeat(r.estrellas)}{'☆'.repeat(5 - r.estrellas)}</span>
+                        <span className={`font-label text-xs px-2 py-1 rounded ${r.aprobado ? 'bg-green-500 text-white' : 'bg-dorado text-navy'}`}>{r.aprobado ? 'Publicada' : 'Pendiente'}</span>
+                      </div>
+                    </div>
+                    <p className="font-body text-navy/80 text-sm mb-3">{r.comentario}</p>
+                    <div className="flex gap-2">
+                      {!r.aprobado && (<button onClick={() => aprobarResena(r)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>)}
+                      <button onClick={() => eliminarResena(r.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition">🗑️ Eliminar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VISTA PROMOCIONES */}
         {vistaActual === 'promociones' && (
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">🎁 Moderación de Promociones</h3>
+            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">🎁 Moderacion de Promociones</h3>
             {promociones.length === 0 ? (
               <p className="text-navy/60 text-center py-8">No hay promociones registradas.</p>
             ) : (
@@ -538,33 +650,21 @@ function AdminPanel({ onClose }) {
                 {promociones.map((p) => {
                   const vencida = new Date(p.fecha_fin) < new Date()
                   return (
-                    <div key={p.id} className={`p-4 rounded-lg border-2 ${
-                      !p.aprobada ? 'bg-dorado/10 border-dorado' :
-                      vencida ? 'bg-gray-100 border-gray-300 opacity-60' :
-                      'bg-green-50 border-green-200'
-                    }`}>
+                    <div key={p.id} className={`p-4 rounded-lg border-2 ${!p.aprobada ? 'bg-dorado/10 border-dorado' : vencida ? 'bg-gray-100 border-gray-300 opacity-60' : 'bg-green-50 border-green-200'}`}>
                       <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
                         <div>
                           <p className="font-body font-bold text-navy text-lg">{p.titulo}</p>
-                          <p className="font-body text-xs text-navy/60">
-                            Negocio: <strong>{p.negocios?.nombre || 'Eliminado'}</strong> • Plan: {p.negocios?.plan}
-                          </p>
-                          <p className="font-body text-xs text-navy/60">
-                            Vigencia: {new Date(p.fecha_inicio).toLocaleDateString('es-AR')} al {new Date(p.fecha_fin).toLocaleDateString('es-AR')}
-                          </p>
+                          <p className="font-body text-xs text-navy/60">Negocio: <strong>{p.negocios?.nombre || 'Eliminado'}</strong> • Plan: {p.negocios?.plan}</p>
+                          <p className="font-body text-xs text-navy/60">Vigencia: {new Date(p.fecha_inicio).toLocaleDateString('es-AR')} al {new Date(p.fecha_fin).toLocaleDateString('es-AR')}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           {vencida && <span className="font-label text-xs px-2 py-1 rounded bg-gray-500 text-white">Vencida</span>}
-                          <span className={`font-label text-xs px-2 py-1 rounded ${p.aprobada ? 'bg-green-500 text-white' : 'bg-yellow-400 text-navy'}`}>
-                            {p.aprobada ? 'Aprobada' : 'Pendiente'}
-                          </span>
+                          <span className={`font-label text-xs px-2 py-1 rounded ${p.aprobada ? 'bg-green-500 text-white' : 'bg-yellow-400 text-navy'}`}>{p.aprobada ? 'Aprobada' : 'Pendiente'}</span>
                         </div>
                       </div>
                       <p className="font-body text-navy/80 text-sm mb-3 bg-white/50 p-3 rounded">{p.descripcion}</p>
                       <div className="flex gap-2">
-                        {!p.aprobada && !vencida && (
-                          <button onClick={() => aprobarPromo(p.id)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>
-                        )}
+                        {!p.aprobada && !vencida && (<button onClick={() => aprobarPromo(p.id)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>)}
                         <button onClick={() => rechazarPromo(p.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition">🗑️ Eliminar</button>
                       </div>
                     </div>
@@ -575,45 +675,7 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* VISTA DE RESEÑAS */}
-        {vistaActual === 'resenas' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="font-display text-2xl text-navy mb-6 tracking-wide">⭐ Gestión de Reseñas</h3>
-            {resenas.length === 0 ? (
-              <p className="text-navy/60 text-center py-8">No hay reseñas registradas</p>
-            ) : (
-              <div className="space-y-4">
-                {resenas.map((r) => (
-                  <div key={r.id} className={`p-4 rounded-lg border-2 ${r.aprobado ? 'bg-green-50 border-green-200' : 'bg-dorado/10 border-dorado'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-body font-bold text-navy">{r.nombre}</p>
-                        <p className="font-body text-xs text-navy/60">
-                          Para: {r.negocios?.nombre || 'Negocio eliminado'} • {new Date(r.created_at).toLocaleDateString('es-AR')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-dorado text-lg">{'★'.repeat(r.estrellas)}{'☆'.repeat(5 - r.estrellas)}</span>
-                        <span className={`font-label text-xs px-2 py-1 rounded ${r.aprobado ? 'bg-green-500 text-white' : 'bg-dorado text-navy'}`}>
-                          {r.aprobado ? 'Publicada' : 'Pendiente'}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="font-body text-navy/80 text-sm mb-3">{r.comentario}</p>
-                    <div className="flex gap-2">
-                      {!r.aprobado && (
-                        <button onClick={() => aprobarResena(r)} className="bg-green-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-green-600 transition">✅ Aprobar</button>
-                      )}
-                      <button onClick={() => eliminarResena(r.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg font-body font-bold text-sm hover:bg-red-600 transition">🗑️ Eliminar</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* VISTA DE PENDIENTES / PUBLICADOS */}
+        {/* VISTA PENDIENTES / PUBLICADOS */}
         {(vistaActual === 'pendientes' || vistaActual === 'publicados') && (
           <>
             <div className="bg-white px-4 py-3 border-b border-navy/10 flex flex-wrap items-center gap-3 rounded-t-xl">
@@ -635,7 +697,7 @@ function AdminPanel({ onClose }) {
                       <tr>
                         <th className="p-4">Negocio</th>
                         <th className="p-4">Contacto</th>
-                        <th className="p-4">Categoría / Plan</th>
+                        <th className="p-4">Categoria / Plan</th>
                         <th className="p-4">Vistas</th>
                         <th className="p-4 text-center">Acciones</th>
                       </tr>
@@ -645,7 +707,7 @@ function AdminPanel({ onClose }) {
                         <tr>
                           <td colSpan="5" className="p-12 text-center text-navy/60">
                             <p className="text-4xl mb-4">{vistaActual === 'pendientes' ? '🎉' : '📭'}</p>
-                            <p className="text-lg font-bold">No hay registros en esta sección{filtroPlan !== 'Todos' ? ` con plan "${filtroPlan}"` : ''}.</p>
+                            <p className="text-lg font-bold">No hay registros en esta seccion{filtroPlan !== 'Todos' ? ` con plan "${filtroPlan}"` : ''}.</p>
                           </td>
                         </tr>
                       ) : (
@@ -659,7 +721,7 @@ function AdminPanel({ onClose }) {
                               <div className="text-xs text-navy/60">{sol.tipo}</div>
                               {sol.codigo_acceso && (
                                 <div className="text-xs font-mono bg-dorado/20 text-navy px-2 py-1 rounded mt-1 inline-block">
-                                  Código: <strong>{sol.codigo_acceso}</strong>
+                                  Codigo: <strong>{sol.codigo_acceso}</strong>
                                 </div>
                               )}
                             </td>
@@ -675,6 +737,13 @@ function AdminPanel({ onClose }) {
                             <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} 👁️</td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-2 justify-center">
+                                {/* 🆕 BOTÓN DE REPORTE */}
+                                <button 
+                                  onClick={() => generarReportePDF(sol)} 
+                                  className="bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-600 transition text-xs flex items-center gap-1"
+                                >
+                                  📊 Reporte
+                                </button>
                                 <button onClick={() => abrirEdicion(sol)} className="bg-dorado text-navy px-3 py-1.5 rounded-lg font-bold hover:bg-dorado-claro transition text-xs flex items-center gap-1">✏️ Editar</button>
                                 {vistaActual === 'publicados' && (
                                   <button onClick={() => toggleSuspender(sol)} className={`px-3 py-1.5 rounded-lg font-bold transition text-xs flex items-center gap-1 ${sol.suspendido ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-orange-500 text-white hover:bg-orange-600'}`}>
