@@ -7,6 +7,7 @@ import FichaDetalle from './FichaDetalle'
 import Mapa from './Mapa'
 import DashboardComercio from './DashboardComercio'
 import Promociones from './Promociones'
+import RadioPlayer from './RadioPlayer'
 
 // 🆕 FÓRMULA DE HAVERSINE PARA CALCULAR DISTANCIA EN KM
 const calcularDistancia = (lat1, lon1, lat2, lon2) => {
@@ -555,6 +556,10 @@ function HomePage() {
 
       {mostrarFormulario && <FormularioComercio onClose={() => setMostrarFormulario(false)} planInicial={planSeleccionado} />}
       {mostrarAdmin && <AdminPanel onClose={() => setMostrarAdmin(false)} />}
+      
+      {/* 📻 REPRODUCTOR DE RADIO GLOBAL */}
+      <RadioPlayer />
+      
     </div>
   )
 }
