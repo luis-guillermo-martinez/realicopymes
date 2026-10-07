@@ -4,6 +4,7 @@ import ReporteVisual from './ReporteVisual'
 import html2canvas from 'html2canvas'
 
 function AdminPanel({ onClose }) {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [vistaActual, setVistaActual] = useState('dashboard')
@@ -18,11 +19,12 @@ function AdminPanel({ onClose }) {
   const [subiendoPortada, setSubiendoPortada] = useState(false)
   const [subiendoGaleria, setSubiendoGaleria] = useState(false)
   const [subiendoBanner, setSubiendoBanner] = useState(false)
-  
-  // Estado para el modal de opciones de reporte
   const [reporteData, setReporteData] = useState(null)
+  
+  // 🆕 Estados para login seguro
+  const [errorLogin, setErrorLogin] = useState('')
+  const [cargandoLogin, setCargandoLogin] = useState(false)
 
-  const ADMIN_PASSWORD = 'realico2026'
   const PLANES = ['Todos', 'Gratuito', 'Estándar', 'Destacado', 'Patrocinado']
 
   useEffect(() => {
@@ -45,13 +47,28 @@ function AdminPanel({ onClose }) {
     setCargando(false)
   }
 
-  const handleLogin = (e) => {
+  // 🆕 LOGIN SEGURO CON SUPABASE AUTH
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
+    setErrorLogin('')
+    setCargandoLogin(true)
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      })
+      
+      if (error) throw error
+      
       setIsAuthenticated(true)
       setPassword('')
-    } else {
-      alert('Contraseña incorrecta')
+      setEmail('')
+    } catch (err) {
+      console.error('Error de login:', err)
+      setErrorLogin('Credenciales incorrectas. Verificá el email y la contraseña.')
+    } finally {
+      setCargandoLogin(false)
     }
   }
 
@@ -221,7 +238,7 @@ function AdminPanel({ onClose }) {
   }
 
   // ==========================================
-  // 🆕 FUNCIONES DE REPORTE (PDF, IMAGEN, TEXTO)
+  // FUNCIONES DE REPORTE
   // ==========================================
 
   const abrirOpcionesReporte = (negocio) => {
@@ -388,9 +405,33 @@ function AdminPanel({ onClose }) {
         <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
           <h2 className="font-display text-2xl text-navy mb-6 text-center tracking-wide">Acceso Administrador</h2>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="password" placeholder="Contraseña de administrador" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado focus:outline-none font-body" autoFocus />
+            <input 
+              type="email" 
+              placeholder="Email de administrador" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado focus:outline-none font-body" 
+              required 
+            />
+            <input 
+              type="password" 
+              placeholder="Contraseña" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full px-4 py-3 border border-navy/20 rounded-lg focus:ring-2 focus:ring-dorado focus:outline-none font-body" 
+              required 
+            />
+            {errorLogin && (
+              <p className="text-red-500 text-sm text-center font-body font-bold">{errorLogin}</p>
+            )}
             <div className="flex gap-3">
-              <button type="submit" className="flex-1 bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition">Ingresar</button>
+              <button 
+                type="submit" 
+                disabled={cargandoLogin}
+                className="flex-1 bg-navy text-crema py-3 rounded-lg font-body font-bold hover:bg-navy-dark transition disabled:opacity-50"
+              >
+                {cargandoLogin ? 'Ingresando...' : 'Ingresar'}
+              </button>
               <button type="button" onClick={onClose} className="flex-1 bg-gray-200 text-navy py-3 rounded-lg font-body font-bold hover:bg-gray-300 transition">Cancelar</button>
             </div>
           </form>
@@ -560,7 +601,7 @@ function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* 🆕 MODAL DE OPCIONES DE REPORTE */}
+        {/* MODAL DE OPCIONES DE REPORTE */}
         {reporteData && (
           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-navy/10">
@@ -786,7 +827,6 @@ function AdminPanel({ onClose }) {
                             <td className="p-4 text-xs text-navy/60">{sol.vistas || 0} 👁️</td>
                             <td className="p-4">
                               <div className="flex flex-wrap gap-2 justify-center">
-                                {/* 🆕 BOTÓN DE REPORTE ACTUALIZADO */}
                                 <button 
                                   onClick={() => abrirOpcionesReporte(sol)} 
                                   className="bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-blue-600 transition text-xs flex items-center gap-1"
